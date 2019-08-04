@@ -34,8 +34,9 @@ namespace Timer {
       this.timerEl.innerText = this.formattedTime(seconds);
     }
 
-    setTotalTime(seconds: number): void {
-      this.totalTimerEl.innerText = this.formattedTime(seconds);
+    setTotalTime(seconds: number, totalDuration: number): void {
+      this.totalTimerEl.innerText =
+          this.formattedTime(seconds) + " / " + this.formattedTime(totalDuration);
     }
 
     setUpcoming(upcomingTasks: Array<string>): void {

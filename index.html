@@ -48,14 +48,14 @@
             </div>
             <div class="tile is-parent">
               <article class="tile is-child notification">
-                <p class="subtitle">Time Remaining</p>
+                <p class="subtitle">Time Remaining for Current Task</p>
                 <div id="timer">0:00</div>
               </article>
             </div>
             <div class="tile">
               <div class="tile is-parent">
                 <article class="tile is-child notification is-info">
-                  <p class="subtitle">Upcoming...</p>
+                  <p class="subtitle">Upcoming Tasks</p>
                   <ol id="upcoming">
                   </ol>
                 </article>
@@ -63,8 +63,8 @@
               <div class="tile is-parent">
                 <article class="tile is-child notification is-success">
                   <p class="subtitle">Total Time</p>
-                  <div id="status">></div>
-                  <span id="total-timer">0:00</span>
+                  <div id="status"></div>
+                  <span id="total-timer" style="font-size:2em">0:00</span>
                 </article>
               </div>
             </div>
@@ -77,7 +77,7 @@
                   <button id="reset-control" class="control button is-danger">RESET</button>
                 </span>
                 <span class="level-item">
-                  Warmup seconds: <input id="warmup" type="text" value="10"></input>
+                  Warmup (seconds): <input id="warmup" type="text" value="10"></input>
                 </span>
               </article></section>
             </div>
@@ -85,7 +85,7 @@
           <div class="tile is-parent is-4">
             <article class="tile is-child notification">
               <p class="subtitle">Diagram</p>
-              <canvas id="diagram" width="300" height="500"></canvas>
+              <canvas id="diagram" width="300" height="600"></canvas>
             </article>
           </div>
         </div>
@@ -99,8 +99,8 @@
 2:00 Exercise 3
 2:00 Exercise 4
 2:00 Exercise 5
-4:00 Minor Pentatonic Scale; MINOR_PENTATONIC,A
-4:00 Minor Scale; NATURAL_MINOR,A
+4:00 Minor Pentatonic Scale; MINOR_PENTATONIC, A
+4:00 Minor Scale; NATURAL_MINOR, A
 10:00 Chords
 2:00 Lick 1
 2:00 Lick 2

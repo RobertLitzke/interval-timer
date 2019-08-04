@@ -16,12 +16,14 @@ var Timer;
             this.intervals = [];
             this.currentIntervalIndex = 0;
             this.accumulatedSeconds = 0;
+            this.totalDuration = 0;
             this.color_index = 0;
         }
         addInterval(interval) {
             interval.setCallbacks(this.onIntroEnd.bind(this), this.onTimerUpdate.bind(this), this.onIntervalEnd.bind(this));
             interval.setColor(intervalColors[this.color_index]);
             this.color_index = (this.color_index + 1) % intervalColors.length;
+            this.totalDuration += interval.getTotalDuration();
             this.intervals.push(interval);
         }
         isFinished() {
@@ -33,7 +35,7 @@ var Timer;
         }
         onTimerUpdate(time) {
             this.display.setTime(time);
-            this.display.setTotalTime(this.accumulatedSeconds);
+            this.display.setTotalTime(this.accumulatedSeconds, this.totalDuration);
             this.accumulatedSeconds++;
         }
         onIntroEnd() {
@@ -84,7 +86,7 @@ var Timer;
             interval.start();
         }
         prepare() {
-            this.display.setTime(this.getCurrentInterval().time);
+            this.display.setTime(this.getCurrentInterval().duration);
             this.setDisplayTask(this.getCurrentInterval());
             this.updateUpcoming();
         }
@@ -99,17 +101,21 @@ var Timer;
     Timer.Schedule = Schedule;
     // An interval in a schedule.
     class Interval {
-        constructor(time, introTime, task, feature) {
-            this.time = time;
+        constructor(duration, introDuration, task, feature) {
+            this.duration = duration;
+            this.introDuration = introDuration;
             this.task = task;
             this.feature = feature;
-            this.timer = new IntervalTimer(time, introTime);
+            this.timer = new IntervalTimer(duration, introDuration);
         }
         setColor(color) {
             this.color = color;
         }
         setCallbacks(introFinishedCallback, updateCallback, finishedCallback) {
             this.timer.setCallbacks(introFinishedCallback, updateCallback, finishedCallback);
+        }
+        getTotalDuration() {
+            return this.duration + this.introDuration;
         }
         start() {
             this.timer.countdown();
@@ -199,8 +205,9 @@ var Timer;
         setTime(seconds) {
             this.timerEl.innerText = this.formattedTime(seconds);
         }
-        setTotalTime(seconds) {
-            this.totalTimerEl.innerText = this.formattedTime(seconds);
+        setTotalTime(seconds, totalDuration) {
+            this.totalTimerEl.innerText =
+                this.formattedTime(seconds) + " / " + this.formattedTime(totalDuration);
         }
         setUpcoming(upcomingTasks) {
             while (this.upcomingEl.firstChild) {
@@ -239,7 +246,7 @@ var countdownTimer = null;
 var currentSchedule = null;
 var controlButtonEl;
 // A regex for parsing each line of the schedule.
-const scheduleRegEx = /(\d+):(\d+)\s?([\w\s]+)?\;?([A-z0-9,]*)/;
+const scheduleRegEx = /(\d+):(\d+)\s?([\w\s]+)?\;?([A-z0-9, ]*)/;
 function getSchedule() {
     const scheduleText = document.querySelector("#schedule").value.trim();
     const lines = scheduleText.split("\n").map((el) => el.trim());
@@ -310,10 +317,8 @@ var Guitar;
         constructor(config) {
             this.config = config;
         }
-        renderFrets(ctx, stringWidth, fretLength, fretCount) {
+        renderFrets(ctx, start, stringWidth, fretLength, fretCount) {
             const textHeight = 12;
-            const start = 35;
-            //ctx.strokeRect(start, start, width, height);
             // Verticals
             for (var i = 0; i < 6; i++) {
                 ctx.beginPath();
@@ -350,11 +355,9 @@ var Guitar;
         }
         renderScale(canvasEl, scale) {
             const start = 35;
-            const fretboardWidth = 150;
-            const fretboardHeight = 450;
             const fretCount = 18;
-            const stringWidth = 30;
-            const fretLength = 25;
+            const stringWidth = 25;
+            const fretLength = 30;
             const noteRadius = fretLength / 3;
             const ctx = canvasEl.getContext('2d');
             // Reset.
@@ -362,7 +365,7 @@ var Guitar;
             ctx.fillStyle = 'black';
             ctx.resetTransform();
             ctx.translate(0.5, 0.5);
-            this.renderFrets(ctx, stringWidth, fretLength, fretCount);
+            this.renderFrets(ctx, start, stringWidth, fretLength, fretCount);
             var i = 1;
             var fretNum = 1;
             ctx.arc(start + i * stringWidth, start + fretNum * fretLength, noteRadius, 0, 2 * Math.PI);
@@ -399,7 +402,6 @@ var Guitar;
                             ctx.fillStyle = "black";
                             this.drawStar(ctx, start + i * stringWidth, start + fretNum * fretLength, noteRadius / 2, 5, 2);
                         }
-                        //ctx.fill();
                     }
                 }
             }
@@ -427,6 +429,7 @@ var Guitar;
         }
     }
     Guitar.Scale = Scale;
+    // Scales, all in the key of A.
     const scales = {
         "MINOR_PENTATONIC": new Scale("Minor Pentatonic", [
             new Fret(5, [2, 1, 1, 1, 1, 2], [1]),
@@ -475,55 +478,4 @@ var Guitar;
             new Fret(18, [0, 1, 0, 0, 0, 0], [5]),
         ])
     };
-    class Scales {
-    }
-    // A natural minor.
-    Scales.natural_minor = [
-        new Fret(2, [0, 1, 1, 2, 0, 0], [5]),
-        new Fret(3, [1, 1, 1, 0, 1, 1], [5]),
-        new Fret(4, [0, 0, 0, 1, 0, 0], [5]),
-        new Fret(5, [2, 1, 1, 1, 1, 2], [5, 1]),
-        new Fret(6, [0, 0, 0, 0, 1, 0], [5, 1]),
-        new Fret(7, [1, 1, 2, 1, 0, 1], [1, 2]),
-        new Fret(8, [1, 1, 0, 0, 1, 1], [1, 2]),
-        new Fret(9, [0, 0, 1, 1, 0, 0], [2, 3]),
-        new Fret(10, [1, 1, 1, 1, 2, 1], [2, 3]),
-        // 11
-        new Fret(12, [1, 2, 1, 1, 1, 1], [3, 4]),
-        new Fret(13, [1, 0, 0, 0, 1, 1], [3, 4]),
-        new Fret(14, [0, 1, 1, 2, 0, 0], [4]),
-        new Fret(15, [1, 1, 1, 0, 1, 1], [4]),
-    ];
-    // A pentatonic minor.
-    Scales.minor_pentatonic = [
-        new Fret(5, [2, 1, 1, 1, 1, 2], [1]),
-        // 6
-        new Fret(7, [0, 1, 2, 1, 0, 0], [1, 2]),
-        new Fret(8, [1, 0, 0, 0, 1, 1], [1, 2]),
-        new Fret(9, [0, 0, 0, 1, 0, 0], [2, 3]),
-        new Fret(10, [1, 1, 1, 0, 2, 1], [2, 3]),
-        // 11
-        new Fret(12, [1, 2, 1, 1, 0, 1], [3, 4]),
-        new Fret(13, [0, 0, 0, 0, 1, 0], [3, 4]),
-        new Fret(14, [0, 0, 1, 2, 0, 0], [4, 5]),
-        new Fret(15, [1, 1, 0, 0, 1, 1], [4, 5]),
-        new Fret(17, [2, 1, 1, 1, 1, 2], [5]),
-    ];
-    Scales.blues = [
-        new Fret(5, [2, 1, 1, 1, 1, 2], [1]),
-        new Fret(6, [0, 1, 0, 0, 0, 0], [1]),
-        new Fret(7, [0, 1, 2, 1, 0, 0], [1, 2]),
-        new Fret(8, [1, 0, 0, 1, 1, 1], [1, 2]),
-        new Fret(9, [0, 0, 0, 1, 0, 0], [2, 3]),
-        new Fret(10, [1, 1, 1, 0, 2, 1], [2, 3]),
-        new Fret(11, [1, 0, 0, 0, 0, 1], [2, 3]),
-        new Fret(12, [1, 2, 1, 1, 0, 1], [3, 4]),
-        new Fret(13, [0, 0, 1, 0, 1, 0], [3, 4]),
-        new Fret(14, [0, 0, 1, 2, 0, 0], [4, 5]),
-        new Fret(15, [1, 1, 0, 0, 1, 1], [4, 5]),
-        new Fret(16, [0, 0, 0, 0, 1, 0], [4, 5]),
-        new Fret(17, [2, 1, 1, 1, 1, 2], [5]),
-        new Fret(18, [0, 1, 0, 0, 0, 0], [5]),
-    ];
-    Guitar.Scales = Scales;
 })(Guitar || (Guitar = {}));

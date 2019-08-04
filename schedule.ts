@@ -14,6 +14,7 @@ namespace Timer {
     intervals: Array<Interval>;
     currentIntervalIndex: number;
     accumulatedSeconds: number;
+    totalDuration: number;
     display: Timer.DisplayController;
     audio: Timer.AudioController;
     color_index: number;
@@ -25,6 +26,7 @@ namespace Timer {
       this.intervals = [];
       this.currentIntervalIndex = 0;
       this.accumulatedSeconds = 0;
+      this.totalDuration = 0;
       this.color_index = 0;
     }
 
@@ -35,6 +37,7 @@ namespace Timer {
           this.onIntervalEnd.bind(this));
       interval.setColor(intervalColors[this.color_index]);
       this.color_index = (this.color_index + 1) % intervalColors.length;
+      this.totalDuration +=  interval.getTotalDuration();
       this.intervals.push(interval);
     }
 
@@ -49,7 +52,7 @@ namespace Timer {
 
     onTimerUpdate(time: number): void {
       this.display.setTime(time);
-      this.display.setTotalTime(this.accumulatedSeconds);
+      this.display.setTotalTime(this.accumulatedSeconds, this.totalDuration);
       this.accumulatedSeconds++;
     }
 
@@ -106,7 +109,7 @@ namespace Timer {
     }
 
     prepare(): void {
-      this.display.setTime(this.getCurrentInterval().time);
+      this.display.setTime(this.getCurrentInterval().duration);
       this.setDisplayTask(this.getCurrentInterval());
       this.updateUpcoming();
     }
@@ -122,21 +125,23 @@ namespace Timer {
 
   // An interval in a schedule.
   export class Interval {
-    time: number;
+    duration: number;
+    introDuration: number;
     task: string;
     color: string;
     timer: IntervalTimer;
     feature: Timer.Feature;
 
-    constructor(time: number,
-        introTime: number,
+    constructor(duration: number,
+        introDuration: number,
         task: string,
         feature?: Timer.Feature) {
-      this.time = time;
+      this.duration = duration;
+      this.introDuration = introDuration;
       this.task = task;
       this.feature = feature;
       this.timer = new IntervalTimer(
-        time, introTime);
+        duration, introDuration);
     }
 
     setColor(color: string) {
@@ -150,6 +155,10 @@ namespace Timer {
           introFinishedCallback,
           updateCallback,
           finishedCallback);
+    }
+
+    getTotalDuration(): number {
+      return this.duration + this.introDuration;
     }
 
     start(): void {

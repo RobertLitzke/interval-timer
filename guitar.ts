@@ -19,10 +19,12 @@ namespace Guitar {
     constructor(config: Array<string>) {
       this.config = config;
     }
-    renderFrets(ctx: any, stringWidth: number, fretLength: number, fretCount: number): void {
+    renderFrets(ctx: any,
+        start: number,
+        stringWidth: number,
+        fretLength: number,
+        fretCount: number): void {
       const textHeight = 12;
-      const start = 35;
-      //ctx.strokeRect(start, start, width, height);
 
       // Verticals
       for (var i = 0; i < 6; i++) {
@@ -44,29 +46,32 @@ namespace Guitar {
       ctx.stroke();
     }
 
-    drawStar(ctx : any, x: number, y: number, r: number, n: number, inset: number): void {
-        ctx.save();
-        ctx.beginPath();
-        ctx.translate(x, y);
-        ctx.moveTo(0, 0 + r);
-        for (var i = 0; i < n; i++) {
-            ctx.rotate(Math.PI / n);
-            ctx.lineTo(0, 0 + (r*inset));
-            ctx.rotate(Math.PI / n);
-            ctx.lineTo(0, 0 + r);
-        }
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
+    drawStar(ctx : any,
+        x: number,
+        y: number,
+        r: number,
+        n: number,
+        inset: number): void {
+      ctx.save();
+      ctx.beginPath();
+      ctx.translate(x, y);
+      ctx.moveTo(0, 0 + r);
+      for (var i = 0; i < n; i++) {
+          ctx.rotate(Math.PI / n);
+          ctx.lineTo(0, 0 + (r*inset));
+          ctx.rotate(Math.PI / n);
+          ctx.lineTo(0, 0 + r);
+      }
+      ctx.closePath();
+      ctx.fill();
+      ctx.restore();
     }
 
     renderScale(canvasEl : any, scale: Scale): void {
       const start = 35;
-      const fretboardWidth = 150;
-      const fretboardHeight = 450;
       const fretCount = 18;
-      const stringWidth = 30;
-      const fretLength = 25;
+      const stringWidth = 25;
+      const fretLength = 30;
       const noteRadius = fretLength / 3;
       const ctx = canvasEl.getContext('2d');
       // Reset.
@@ -74,7 +79,7 @@ namespace Guitar {
       ctx.fillStyle = 'black';
       ctx.resetTransform();
       ctx.translate(0.5, 0.5);
-      this.renderFrets(ctx, stringWidth, fretLength, fretCount);
+      this.renderFrets(ctx, start, stringWidth, fretLength, fretCount);
       var i =1;
       var fretNum = 1;
       ctx.arc(start + i * stringWidth,
@@ -131,7 +136,6 @@ namespace Guitar {
                 5,
                 2);
             }
-            //ctx.fill();
           }
         }
       }
@@ -170,7 +174,7 @@ namespace Guitar {
     }
   }
 
-
+  // Scales, all in the key of A.
   const scales = {
     "MINOR_PENTATONIC": new Scale("Minor Pentatonic", [
       new Fret(5, [2, 1, 1, 1, 1, 2], [1]),
@@ -219,56 +223,4 @@ namespace Guitar {
       new Fret(18,[0, 1, 0, 0, 0, 0], [5]),
     ])
   };
-
-  export class Scales {
-    // A natural minor.
-    static natural_minor: Array<Fret> = [
-      new Fret(2, [0, 1, 1, 2, 0, 0], [5]),
-      new Fret(3, [1, 1, 1, 0, 1, 1], [5]),
-      new Fret(4, [0, 0, 0, 1, 0, 0], [5]),
-      new Fret(5, [2, 1, 1, 1, 1, 2], [5, 1]),
-      new Fret(6, [0, 0, 0, 0, 1, 0], [5, 1]),
-      new Fret(7, [1, 1, 2, 1, 0, 1], [1, 2]),
-      new Fret(8, [1, 1, 0, 0, 1, 1], [1, 2]),
-      new Fret(9, [0, 0, 1, 1, 0, 0], [2, 3]),
-      new Fret(10, [1, 1, 1, 1, 2, 1], [2, 3]),
-      // 11
-      new Fret(12, [1, 2, 1, 1, 1, 1], [3, 4]),
-      new Fret(13, [1, 0, 0, 0, 1, 1], [3, 4]),
-      new Fret(14, [0, 1, 1, 2, 0, 0], [4]),
-      new Fret(15, [1, 1, 1, 0, 1, 1], [4]),
-    ];
-    // A pentatonic minor.
-    static minor_pentatonic: Array<Fret> = [
-      new Fret(5, [2, 1, 1, 1, 1, 2], [1]),
-      // 6
-      new Fret(7, [0, 1, 2, 1, 0, 0], [1, 2]),
-      new Fret(8, [1, 0, 0, 0, 1, 1], [1, 2]),
-      new Fret(9, [0, 0, 0, 1, 0, 0], [2, 3]),
-      new Fret(10,[1, 1, 1, 0, 2, 1], [2, 3]),
-      // 11
-      new Fret(12,[1, 2, 1, 1, 0, 1], [3, 4]),
-      new Fret(13,[0, 0, 0, 0, 1, 0], [3 ,4]),
-      new Fret(14,[0, 0, 1, 2, 0, 0], [4, 5]),
-      new Fret(15,[1, 1, 0, 0, 1, 1], [4, 5]),
-      new Fret(17,[2, 1, 1, 1, 1, 2], [5]),
-    ];
-
-    static blues: Array<Fret> = [
-      new Fret(5, [2, 1, 1, 1, 1, 2], [1]),
-      new Fret(6, [0, 1, 0, 0, 0, 0], [1]),
-      new Fret(7, [0, 1, 2, 1, 0, 0], [1, 2]),
-      new Fret(8, [1, 0, 0, 1, 1, 1], [1, 2]),
-      new Fret(9, [0, 0, 0, 1, 0, 0], [2, 3]),
-      new Fret(10,[1, 1, 1, 0, 2, 1], [2, 3]),
-      new Fret(11,[1, 0, 0, 0, 0, 1], [2, 3]),
-      new Fret(12,[1, 2, 1, 1, 0, 1], [3, 4]),
-      new Fret(13,[0, 0, 1, 0, 1, 0], [3 ,4]),
-      new Fret(14,[0, 0, 1, 2, 0, 0], [4, 5]),
-      new Fret(15,[1, 1, 0, 0, 1, 1], [4, 5]),
-      new Fret(16,[0, 0, 0, 0, 1, 0], [4, 5]),
-      new Fret(17,[2, 1, 1, 1, 1, 2], [5]),
-      new Fret(18,[0, 1, 0, 0, 0, 0], [5]),
-    ];
-  }
 }
