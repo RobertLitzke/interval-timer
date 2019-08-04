@@ -1,5 +1,168 @@
 var Timer;
 (function (Timer) {
+    // Colors for tasks in intervals.
+    const intervalColors = [
+        '#e7cba9',
+        '#aad9cd',
+        '#e8d595',
+        '#8da47e',
+        '#e9bbb5',
+    ];
+    // An instance of a schedule.
+    class Schedule {
+        constructor(display, audio) {
+            this.display = display;
+            this.audio = audio;
+            this.intervals = [];
+            this.currentIntervalIndex = 0;
+            this.accumulatedSeconds = 0;
+            this.color_index = 0;
+        }
+        addInterval(interval) {
+            interval.setCallbacks(this.onIntroEnd.bind(this), this.onTimerUpdate.bind(this), this.onIntervalEnd.bind(this));
+            interval.setColor(intervalColors[this.color_index]);
+            this.color_index = (this.color_index + 1) % intervalColors.length;
+            this.intervals.push(interval);
+        }
+        isFinished() {
+            return this.currentIntervalIndex >= this.intervals.length;
+        }
+        getCurrentInterval() {
+            return this.isFinished() ?
+                null : this.intervals[this.currentIntervalIndex];
+        }
+        onTimerUpdate(time) {
+            this.display.setTime(time);
+            this.display.setTotalTime(this.accumulatedSeconds);
+            this.accumulatedSeconds++;
+        }
+        onIntroEnd() {
+            this.audio.playIntroEnd();
+        }
+        onIntervalEnd() {
+            this.currentIntervalIndex += 1;
+            this.audio.playIntervalEnd();
+            if (!this.isFinished()) {
+                this.setDisplayTask(this.getCurrentInterval());
+                this.updateUpcoming();
+                this.intervals[this.currentIntervalIndex].start();
+            }
+            else {
+                this.setDisplayFinished();
+            }
+            countdownTimer = null;
+        }
+        setDisplayTask(interval) {
+            this.display.setTask(interval.task, interval.color);
+            if (interval.feature) {
+                this.display.renderFeature(interval.feature);
+            }
+            else {
+                this.display.clearFeature();
+            }
+        }
+        setDisplayFinished() {
+            this.display.setTask('DONE!', '');
+        }
+        updateUpcoming() {
+            if (this.isFinished()) {
+                this.display.setUpcoming(["-"]);
+                return;
+            }
+            const upcomingTasks = [];
+            const maxSize = Math.min(this.currentIntervalIndex + 2, this.intervals.length);
+            for (var i = this.currentIntervalIndex; i < maxSize; i++) {
+                upcomingTasks.push(this.intervals[i].task);
+            }
+            this.display.setUpcoming(upcomingTasks);
+        }
+        start() {
+            const interval = this.getCurrentInterval();
+            if (!interval) {
+                return;
+            }
+            interval.start();
+        }
+        prepare() {
+            this.display.setTime(this.getCurrentInterval().time);
+            this.setDisplayTask(this.getCurrentInterval());
+            this.updateUpcoming();
+        }
+        pause() {
+            const interval = this.getCurrentInterval();
+            if (!interval) {
+                return;
+            }
+            interval.pause();
+        }
+    }
+    Timer.Schedule = Schedule;
+    // An interval in a schedule.
+    class Interval {
+        constructor(time, introTime, task, feature) {
+            this.time = time;
+            this.task = task;
+            this.feature = feature;
+            this.timer = new IntervalTimer(time, introTime);
+        }
+        setColor(color) {
+            this.color = color;
+        }
+        setCallbacks(introFinishedCallback, updateCallback, finishedCallback) {
+            this.timer.setCallbacks(introFinishedCallback, updateCallback, finishedCallback);
+        }
+        start() {
+            this.timer.countdown();
+        }
+        pause() {
+            this.timer.pause();
+        }
+    }
+    Timer.Interval = Interval;
+    // Controls timing and the countdown timer.
+    class IntervalTimer {
+        constructor(time, introductionTime) {
+            this.timeRemaining = time;
+            this.introTimeRemaining = introductionTime;
+            this.isIntroFinished = introductionTime == 0 ? true : false;
+        }
+        setCallbacks(introFinishedCallback, updateCallback, finishedCallback) {
+            this.introFinishedCallback = introFinishedCallback;
+            this.updateCallback = updateCallback;
+            this.finishedCallback = finishedCallback;
+        }
+        countdown() {
+            if (this.timeRemaining == 0) {
+                this.finishedCallback();
+                return;
+            }
+            if (this.introTimeRemaining > 0) {
+                this.updateCallback(this.introTimeRemaining);
+                this.introTimeRemaining -= 1;
+                countdownTimer = setTimeout(() => this.countdown(), 1000);
+                return;
+            }
+            else if (!this.isIntroFinished) {
+                this.introFinishedCallback();
+                this.isIntroFinished = true;
+            }
+            if (this.timeRemaining > 0) {
+                this.updateCallback(this.timeRemaining);
+                this.timeRemaining -= 1;
+                countdownTimer = setTimeout(() => this.countdown(), 1000);
+            }
+            else {
+                this.finishedCallback();
+            }
+        }
+        pause() {
+            clearTimeout(countdownTimer);
+            countdownTimer = null;
+        }
+    }
+})(Timer || (Timer = {}));
+var Timer;
+(function (Timer) {
     class AudioController {
         constructor(introEndSoundEl, intervalEndSoundEl) {
             this.introEndSoundEl = introEndSoundEl;
@@ -69,181 +232,31 @@ var Timer;
 // <reference path="display_controller.ts" />
 // <reference path="feature.ts" />
 // <reference path="guitar.ts" />
+// <reference path="schedule.ts" />
+// The HTML countdown timer. If this is not null, the timer is running.
 var countdownTimer = null;
+// The current set of intervals being followed.
 var currentSchedule = null;
-var buttonEl;
-var scheduleEl;
+var controlButtonEl;
+// A regex for parsing each line of the schedule.
 const scheduleRegEx = /(\d+):(\d+)\s?([\w\s]+)?\;?([A-z0-9,]*)/;
-//const scheduleRegEx = /(\d+):(\d+)\s?([\w\s]+)?/;
-const colors = [
-    '#BF616A',
-    '#D08770',
-    '#EBCB8B',
-    '#A3BE8C',
-    '#B48EAD',
-];
-var color_index = 0;
-class IntervalTimer {
-    constructor(time, introductionTime) {
-        this.timeRemaining = time;
-        this.introTimeRemaining = introductionTime;
-        this.isIntroFinished = introductionTime == 0 ? true : false;
-    }
-    setCallbacks(introFinishedCallback, updateCallback, finishedCallback) {
-        this.introFinishedCallback = introFinishedCallback;
-        this.updateCallback = updateCallback;
-        this.finishedCallback = finishedCallback;
-    }
-    countdown() {
-        if (this.timeRemaining == 0) {
-            this.finishedCallback();
-            return;
-        }
-        if (this.introTimeRemaining > 0) {
-            this.updateCallback(this.introTimeRemaining);
-            this.introTimeRemaining -= 1;
-            countdownTimer = setTimeout(() => this.countdown(), 1000);
-            return;
-        }
-        else if (!this.isIntroFinished) {
-            this.introFinishedCallback();
-            this.isIntroFinished = true;
-        }
-        if (this.timeRemaining > 0) {
-            this.updateCallback(this.timeRemaining);
-            this.timeRemaining -= 1;
-            countdownTimer = setTimeout(() => this.countdown(), 1000);
-        }
-        else {
-            this.finishedCallback();
-        }
-    }
-    pause() {
-        clearTimeout(countdownTimer);
-        countdownTimer = null;
-    }
-}
-class Interval {
-    constructor(time, introTime, task, feature) {
-        this.time = time;
-        this.task = task;
-        this.feature = feature;
-        this.timer = new IntervalTimer(time, introTime);
-        this.color = colors[color_index];
-        color_index = (color_index + 1) % colors.length;
-    }
-    setCallbacks(introFinishedCallback, updateCallback, finishedCallback) {
-        this.timer.setCallbacks(introFinishedCallback, updateCallback, finishedCallback);
-    }
-    start() {
-        this.timer.countdown();
-    }
-    pause() {
-        this.timer.pause();
-    }
-}
-class Schedule {
-    constructor(display, audio) {
-        this.display = display;
-        this.audio = audio;
-        this.intervals = [];
-        this.currentIntervalIndex = 0;
-        this.accumulatedSeconds = 0;
-    }
-    addPeriod(interval) {
-        interval.setCallbacks(this.onIntroEnd.bind(this), this.onTimerUpdate.bind(this), this.onIntervalEnd.bind(this));
-        this.intervals.push(interval);
-    }
-    isFinished() {
-        return this.currentIntervalIndex >= this.intervals.length;
-    }
-    getCurrentInterval() {
-        return this.isFinished() ?
-            null : this.intervals[this.currentIntervalIndex];
-    }
-    onTimerUpdate(time) {
-        this.display.setTime(time);
-        this.display.setTotalTime(this.accumulatedSeconds);
-        this.accumulatedSeconds++;
-    }
-    onIntroEnd() {
-        this.audio.playIntroEnd();
-    }
-    onIntervalEnd() {
-        this.currentIntervalIndex += 1;
-        this.audio.playIntervalEnd();
-        if (!this.isFinished()) {
-            this.setDisplayTask(this.getCurrentInterval());
-            this.updateUpcoming();
-            this.intervals[this.currentIntervalIndex].start();
-        }
-        else {
-            this.setDisplayFinished();
-        }
-        countdownTimer = null;
-    }
-    setDisplayTask(interval) {
-        this.display.setTask(interval.task, interval.color);
-        if (interval.feature) {
-            this.display.renderFeature(interval.feature);
-        }
-        else {
-            this.display.clearFeature();
-        }
-    }
-    setDisplayFinished() {
-        this.display.setTask('DONE!', '');
-    }
-    updateUpcoming() {
-        if (this.isFinished()) {
-            this.display.setUpcoming(["-"]);
-            return;
-        }
-        const upcomingTasks = [];
-        const maxSize = Math.min(this.currentIntervalIndex + 2, this.intervals.length);
-        for (var i = this.currentIntervalIndex; i < maxSize; i++) {
-            upcomingTasks.push(this.intervals[i].task);
-        }
-        this.display.setUpcoming(upcomingTasks);
-    }
-    start() {
-        const interval = this.getCurrentInterval();
-        if (!interval) {
-            return;
-        }
-        interval.start();
-    }
-    prepare() {
-        this.display.setTime(this.getCurrentInterval().time);
-        this.setDisplayTask(this.getCurrentInterval());
-        this.updateUpcoming();
-    }
-    pause() {
-        const interval = this.getCurrentInterval();
-        if (!interval) {
-            return;
-        }
-        interval.pause();
-    }
-}
 function getSchedule() {
-    color_index = 0;
-    const scheduleText = scheduleEl.value.trim();
+    const scheduleText = document.querySelector("#schedule").value.trim();
     const lines = scheduleText.split("\n").map((el) => el.trim());
-    const schedule = new Schedule(new Timer.DisplayController(document.querySelector("#timer"), document.querySelector("#total-timer"), document.querySelector("#task-wrapper"), document.querySelector("#task"), document.querySelector('#diagram'), document.querySelector('#status'), document.querySelector('#upcoming')), new Timer.AudioController(document.querySelector('#intro-end-sound'), document.querySelector('#interval-end-sound')));
+    const schedule = new Timer.Schedule(new Timer.DisplayController(document.querySelector("#timer"), document.querySelector("#total-timer"), document.querySelector("#task-wrapper"), document.querySelector("#task"), document.querySelector('#diagram'), document.querySelector('#status'), document.querySelector('#upcoming')), new Timer.AudioController(document.querySelector('#intro-end-sound'), document.querySelector('#interval-end-sound')));
     for (const line of lines) {
         const parsed = line.match(scheduleRegEx);
         if (!parsed) {
             console.log("Invalid format");
             continue;
         }
-        const seconds = Number(parsed[1] * 60) + Number(parsed[2]);
+        const seconds = Number(parsed[1]) * 60 + Number(parsed[2]);
         const introTime = Number.parseFloat(document.querySelector("#warmup").value)
             || 0;
         const feature = !parsed[4] ? null :
             new Guitar.Feature(parsed[4].split(",").map((el) => el.trim()));
-        const interval = new Interval(seconds, introTime, parsed[3] ? parsed[3] : "", feature);
-        schedule.addPeriod(interval);
+        const interval = new Timer.Interval(seconds, introTime, parsed[3] ? parsed[3] : "", feature);
+        schedule.addInterval(interval);
     }
     return schedule;
 }
@@ -253,15 +266,15 @@ function toggle() {
     }
     if (countdownTimer) {
         currentSchedule.pause();
-        buttonEl.innerText = 'START';
-        buttonEl.classList.remove('is-warning');
-        buttonEl.classList.add('is-success');
+        controlButtonEl.innerText = 'START';
+        controlButtonEl.classList.remove('is-warning');
+        controlButtonEl.classList.add('is-success');
     }
     else {
         currentSchedule.start();
-        buttonEl.innerText = 'PAUSE';
-        buttonEl.classList.remove('is-success');
-        buttonEl.classList.add('is-warning');
+        controlButtonEl.innerText = 'PAUSE';
+        controlButtonEl.classList.remove('is-success');
+        controlButtonEl.classList.add('is-warning');
     }
 }
 function reset() {
@@ -270,16 +283,15 @@ function reset() {
     }
     currentSchedule = this.getSchedule();
     currentSchedule.prepare();
-    buttonEl.innerText = 'START';
-    buttonEl.classList.remove('is-warning');
-    buttonEl.classList.add('is-success');
+    controlButtonEl.innerText = 'START';
+    controlButtonEl.classList.remove('is-warning');
+    controlButtonEl.classList.add('is-success');
 }
 function init() {
-    buttonEl = document.querySelector("#start-control");
-    buttonEl.onclick = () => toggle();
+    controlButtonEl = document.querySelector("#start-control");
+    controlButtonEl.onclick = () => toggle();
     document.querySelector("#reset-control").onclick =
         () => reset();
-    scheduleEl = document.querySelector("#schedule");
 }
 // <reference path="feature.ts" />
 var Guitar;
