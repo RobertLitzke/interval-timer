@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Guitar Timer</title>
+    <script src="main.js"></script>
+    <style>
+      body {
+        font-family: Helvetica, Arial;
+      }
+
+      #task, #timer {
+          font-weight: 300;
+          padding: 60px;
+          text-align: center;
+      }
+
+      #task {
+        font-size: 2.5em;
+      }
+
+      #timer {
+        font-size: 4em;
+      }
+
+      .content {
+        width: 600px;
+        margin: 100px auto;
+        text-align: center;
+      }
+
+      .controls li {
+        display: inline;
+      }
+
+      .control {
+        appearance: none;
+        background-color: white;
+        border: none;
+        border-radius: 2px;
+        padding: 5px 10px;
+        font-size: 20px;
+        font-weight: 200;
+        margin: 5px;
+        box-shadow: 0 3px 1px -2px rgba(0, 0, 0, 0.2), 0 2px 2px 0 rgba(0, 0, 0, 0.14), 0 1px 5px 0 rgba(0, 0, 0, 0.12);
+      }
+
+      .start {
+        background-color: "#5E81AC";
+      }
+
+      .stop {
+        background-color: "#88C0D0";
+      }
+
+      .reset {
+        background-color: "#81A1C1"
+      }
+
+      #schedule {
+        width: 500px;
+        height: 300px;
+      }
+    </style>
+  </head>
+  <body onload="init()">
+    <div class="content">
+      <canvas id="diagram" width="300" height="500">
+      </canvas>
+
+      <section class="core">
+        <div id="task">Your task</div>
+        <div>
+          <div id="total-timer">0:00</div>
+        <div id="timer">0:00</div>
+      </section>
+      <section class="controls">
+        <ul>
+          <li><button id="start-control" class="control" onclick="toggle()">START</button></li>
+          <li><button id="reset-control" class="control" onclick="reset()">RESET</button></li>
+          <li>Add countdown interval.</li>
+        </ul>
+      </section>
+      <section class="schedule">
+        <h3>Schedule</h3>
+        <textarea id="schedule">
+0:05 Test
+0:15 Test2
+2:00 Exercise 1
+2:00 Exercise 2
+2:00 Exercise 3
+2:00 Exercise 4
+2:00 Exercise 5
+4:00 Minor Pentatonic Scale
+4:00 Minor Scale
+10:00 Thrill is Gone Chords
+7:00 Soloing
+10:00 Songs
+2:00 Lick 1
+2:00 Lick 2
+2:00 Lick 3
+2:00 Lick 4
+2:00 Lick 5
+        </textarea>
+      </section>
+    </div>
+    <audio id="stop-sound" src="sound.mp3" preload="auto"></audio>
+  </body>
+</html>
