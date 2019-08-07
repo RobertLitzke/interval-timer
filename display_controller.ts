@@ -55,9 +55,9 @@ namespace Timer {
     }
 
     clearFeature(): void {
-      const canvas = (<HTMLCanvasElement>this.diagramEl);
-      const ctx = canvas.getContext('2d');
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      while (this.diagramEl.firstChild) {
+        this.diagramEl.removeChild(this.diagramEl.firstChild)
+      }
     }
 
     formattedTime(totalSeconds: number): string {

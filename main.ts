@@ -12,7 +12,7 @@ var currentSchedule = null;
 var controlButtonEl;
 
 // A regex for parsing each line of the schedule.
-const scheduleRegEx = /(\d+):(\d+)\s?([\w\s]+)?\;?([A-z0-9, ]*)/;
+const scheduleRegEx = /(\d+):(\d+)\,?([A-z0-9, ]+)*/;
 
 function getSchedule(): Timer.Schedule {
   const scheduleText =
@@ -41,11 +41,15 @@ function getSchedule(): Timer.Schedule {
         Number.parseFloat(
           (<HTMLInputElement>document.querySelector("#warmup")).value)
         || 0;
-    const feature = !parsed[4] ? null :
-        new Guitar.Feature(parsed[4].split(",").map((el) => el.trim()));
+
+    const additionalInfo =
+    parsed[3] ? parsed[3].split(",").map((el) => el.trim()) : [];
+    const name = additionalInfo.length > 0 ? additionalInfo[0] : "";
+    const feature = additionalInfo.length <= 1 ? null :
+        new Guitar.Feature(additionalInfo.slice(1));
     const interval = new Timer.Interval(seconds,
         introTime,
-        parsed[3] ? parsed[3] : "",
+        name,
         feature);
     schedule.addInterval(interval);
   }
