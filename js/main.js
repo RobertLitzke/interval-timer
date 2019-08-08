@@ -246,7 +246,7 @@ var countdownTimer = null;
 var currentSchedule = null;
 var controlButtonEl;
 // A regex for parsing each line of the schedule.
-const scheduleRegEx = /(\d+):(\d+)\,?([A-z0-9, ]+)*/;
+const scheduleRegEx = /(\d+):(\d+)\,?([A-z0-9#, ]+)*/;
 function getSchedule() {
     const scheduleText = document.querySelector("#schedule").value.trim();
     const lines = scheduleText.split("\n").map((el) => el.trim());
@@ -308,17 +308,26 @@ var Guitar;
     const stringWidths = [
         3, 3, 2, 2, 1, 1
     ];
-    const patternColors = [
-        "#00b159",
-        "#d11141",
-        "#00aedb",
-        "#ffc425",
-        "#f37735",
+    const music_notes = [
+        ["A"],
+        ["A#", "Bb"],
+        ["B"],
+        ["C"],
+        ["C#"],
+        ["D"],
+        ["D#", "Eb"],
+        ["E"],
+        ["F"],
+        ["F#", "Gb"],
+        ["G"],
+        ["G#", "Ab"],
     ];
+    // Offsets from A, for EADGBE tuning. More tunings to be supported.
+    const tuning = [7, 0, 5, 10, 2, 7];
     const START_PX = 35;
     const STRING_WIDTH_PX = 25;
     const FRET_LENGTH_PX = 30;
-    const NOTE_RADIUS_PX = FRET_LENGTH_PX / 3;
+    const NOTE_RADIUS_PX = 8;
     class Feature {
         constructor(config) {
             this.config = config;
@@ -386,14 +395,15 @@ var Guitar;
             ctx.fill();
             ctx.restore();
         }
-        displayScale(diagramEl, scale) {
+        displayScale(diagramEl, scale, key) {
             this.clearAllChildren(diagramEl);
-            this.addHeader(diagramEl, scale.name + " Scale");
+            const keyName = music_notes[key][0];
+            this.addHeader(diagramEl, scale.name + " Scale, Key of " + keyName);
             const canvasEl = this.addCanvas(diagramEl);
             diagramEl.appendChild(canvasEl);
-            this.drawScale(canvasEl, scale);
+            this.drawScale(canvasEl, scale, key);
         }
-        drawScale(canvasEl, scale) {
+        drawScale(canvasEl, scale, keyOffset) {
             const fretCount = 18;
             const ctx = canvasEl.getContext('2d');
             // Reset.
@@ -404,39 +414,20 @@ var Guitar;
             this.renderFrets(ctx, START_PX, STRING_WIDTH_PX, FRET_LENGTH_PX, fretCount);
             var i = 1;
             var fretNum = 1;
-            for (const fret of scale.frets) {
-                const fretNum = fret.index;
-                for (var i = 0; i < 6; i++) {
-                    if (fret.strings[i]) {
-                        if (fret.patterns.length == 1) {
-                            ctx.beginPath();
-                            ctx.fillStyle = patternColors[fret.patterns[0] - 1];
-                            ctx.arc(START_PX + i * STRING_WIDTH_PX, START_PX + fretNum * FRET_LENGTH_PX, NOTE_RADIUS_PX, 0, 2 * Math.PI);
-                            ctx.fill();
-                            ctx.stroke();
-                        }
-                        else {
-                            ctx.beginPath();
-                            var pattern1 = fret.patterns[0];
-                            var pattern2 = fret.patterns[1];
-                            if (fret.patterns[0] % 2 == 0) {
-                                pattern1 = fret.patterns[1];
-                                pattern2 = fret.patterns[0];
-                            }
-                            ctx.fillStyle = patternColors[pattern1 - 1];
-                            ctx.arc(START_PX + i * STRING_WIDTH_PX, START_PX + fretNum * FRET_LENGTH_PX, NOTE_RADIUS_PX, Math.PI / 2, Math.PI * 1.5);
-                            ctx.fill();
-                            ctx.stroke();
-                            ctx.beginPath();
-                            ctx.fillStyle = patternColors[pattern2 - 1];
-                            ctx.arc(START_PX + i * STRING_WIDTH_PX, START_PX + fretNum * FRET_LENGTH_PX, NOTE_RADIUS_PX, Math.PI * 1.5, Math.PI / 2);
-                            ctx.fill();
-                            ctx.stroke();
-                        }
-                        if (fret.strings[i] == 2) {
-                            ctx.fillStyle = "black";
-                            this.drawStar(ctx, START_PX + i * STRING_WIDTH_PX, START_PX + fretNum * FRET_LENGTH_PX, NOTE_RADIUS_PX / 2, 5, 2);
-                        }
+            for (var i = 0; i < 6; i++) {
+                for (var j = 0; j <= fretCount; j++) {
+                    var pos = tuning[i] - keyOffset + j;
+                    pos = pos >= 0 ? pos : 12 + pos;
+                    if (scale.degrees.indexOf(pos % 12) >= 0) {
+                        ctx.fillStyle = 'black';
+                        ctx.beginPath();
+                        ctx.arc(START_PX + i * STRING_WIDTH_PX, START_PX + j * FRET_LENGTH_PX, NOTE_RADIUS_PX, 0, 2 * Math.PI);
+                        ctx.fill();
+                        ctx.stroke();
+                    }
+                    if (pos % 12 == 0) {
+                        ctx.fillStyle = 'white';
+                        this.drawStar(ctx, START_PX + i * STRING_WIDTH_PX, START_PX + j * FRET_LENGTH_PX, NOTE_RADIUS_PX / 2, 5, 2);
                     }
                 }
             }
@@ -481,9 +472,53 @@ var Guitar;
                 }
             }
         }
+        displayNotes(diagramEl) {
+            this.clearAllChildren(diagramEl);
+            this.addHeader(diagramEl, "Notes on the fretboard");
+            const canvasEl = this.addCanvas(diagramEl);
+            diagramEl.appendChild(canvasEl);
+            this.drawNotes(canvasEl);
+        }
+        drawNotes(canvasEl) {
+            const fretCount = 18;
+            const fontSize = 16;
+            const ctx = canvasEl.getContext('2d');
+            // Reset.
+            ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+            ctx.fillStyle = 'black';
+            ctx.resetTransform();
+            ctx.translate(0.5, 0.5);
+            this.renderFrets(ctx, START_PX, STRING_WIDTH_PX, FRET_LENGTH_PX, fretCount);
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 8;
+            ctx.fillStyle = 'black';
+            ctx.font = fontSize + 'px Sans-serif';
+            for (var i = 0; i < 6; i++) {
+                for (var j = 0; j <= fretCount; j++) {
+                    var pos = (tuning[i] + j) % 12;
+                    ctx.strokeText(music_notes[pos][0], START_PX + i * STRING_WIDTH_PX - fontSize / 2, START_PX + j * FRET_LENGTH_PX - fontSize / 2);
+                    ctx.fillText(music_notes[pos][0], START_PX + i * STRING_WIDTH_PX - fontSize / 2, START_PX + j * FRET_LENGTH_PX - fontSize / 2);
+                }
+            }
+        }
+        getKeyIndex(keyName) {
+            for (var i = 0; i < music_notes.length; i++) {
+                if (music_notes[i].indexOf(keyName) >= 0) {
+                    return i;
+                }
+            }
+            // Should be displayed to user.
+            console.log("Unknown key: " + keyName);
+            return 0;
+        }
         render(container) {
-            if (scales[this.config[0]]) {
-                this.displayScale(container, scales[this.config[0]]);
+            if (this.config[0] == "NOTES") {
+                this.displayNotes(container);
+            }
+            else if (scales2[this.config[0]]) {
+                const key = this.config.length > 1 ?
+                    this.getKeyIndex(this.config[1]) : 0;
+                this.displayScale(container, scales2[this.config[0]], key);
             }
             else if (chords[this.config[0]]) {
                 this.displayChord(container, chords[this.config[0]]);
@@ -502,9 +537,9 @@ var Guitar;
         }
     }
     class Scale {
-        constructor(name, frets) {
+        constructor(name, degrees) {
             this.name = name;
-            this.frets = frets;
+            this.degrees = degrees;
         }
     }
     class Chord {
@@ -520,53 +555,14 @@ var Guitar;
         "D_MAJOR": new Chord("D", [-1, -1, 0, 1, 2, 1], [-1, -1, 2, 1, 2, 3]),
         "E_MAJOR": new Chord("E", [0, 2, 2, 1, 0, 0], [0, 2, 3, 1, 0, 0]),
     };
-    // Scales, all in the key of A.
-    const scales = {
-        "MINOR_PENTATONIC": new Scale("Minor Pentatonic", [
-            new Fret(5, [2, 1, 1, 1, 1, 2], [1]),
-            // 6
-            new Fret(7, [0, 1, 2, 1, 0, 0], [1, 2]),
-            new Fret(8, [1, 0, 0, 0, 1, 1], [1, 2]),
-            new Fret(9, [0, 0, 0, 1, 0, 0], [2, 3]),
-            new Fret(10, [1, 1, 1, 0, 2, 1], [2, 3]),
-            // 11
-            new Fret(12, [1, 2, 1, 1, 0, 1], [3, 4]),
-            new Fret(13, [0, 0, 0, 0, 1, 0], [3, 4]),
-            new Fret(14, [0, 0, 1, 2, 0, 0], [4, 5]),
-            new Fret(15, [1, 1, 0, 0, 1, 1], [4, 5]),
-            new Fret(17, [2, 1, 1, 1, 1, 2], [5]),
-        ]),
-        "NATURAL_MINOR": new Scale("Natural Minor", [
-            new Fret(2, [0, 1, 1, 2, 0, 0], [5]),
-            new Fret(3, [1, 1, 1, 0, 1, 1], [5]),
-            new Fret(4, [0, 0, 0, 1, 0, 0], [5]),
-            new Fret(5, [2, 1, 1, 1, 1, 2], [5, 1]),
-            new Fret(6, [0, 0, 0, 0, 1, 0], [5, 1]),
-            new Fret(7, [1, 1, 2, 1, 0, 1], [1, 2]),
-            new Fret(8, [1, 1, 0, 0, 1, 1], [1, 2]),
-            new Fret(9, [0, 0, 1, 1, 0, 0], [2, 3]),
-            new Fret(10, [1, 1, 1, 1, 2, 1], [2, 3]),
-            // 11
-            new Fret(12, [1, 2, 1, 1, 1, 1], [3, 4]),
-            new Fret(13, [1, 0, 0, 0, 1, 1], [3, 4]),
-            new Fret(14, [0, 1, 1, 2, 0, 0], [4]),
-            new Fret(15, [1, 1, 1, 0, 1, 1], [4]),
-        ]),
-        "BLUES": new Scale("Blues", [
-            new Fret(5, [2, 1, 1, 1, 1, 2], [1]),
-            new Fret(6, [0, 1, 0, 0, 0, 0], [1]),
-            new Fret(7, [0, 1, 2, 1, 0, 0], [1, 2]),
-            new Fret(8, [1, 0, 0, 1, 1, 1], [1, 2]),
-            new Fret(9, [0, 0, 0, 1, 0, 0], [2, 3]),
-            new Fret(10, [1, 1, 1, 0, 2, 1], [2, 3]),
-            new Fret(11, [1, 0, 0, 0, 0, 1], [2, 3]),
-            new Fret(12, [1, 2, 1, 1, 0, 1], [3, 4]),
-            new Fret(13, [0, 0, 1, 0, 1, 0], [3, 4]),
-            new Fret(14, [0, 0, 1, 2, 0, 0], [4, 5]),
-            new Fret(15, [1, 1, 0, 0, 1, 1], [4, 5]),
-            new Fret(16, [0, 0, 0, 0, 1, 0], [4, 5]),
-            new Fret(17, [2, 1, 1, 1, 1, 2], [5]),
-            new Fret(18, [0, 1, 0, 0, 0, 0], [5]),
-        ])
+    const scales2 = {
+        "DORIAN_MINOR": new Scale("Dorian Minor", [0, 2, 3, 5, 7, 9, 10]),
+        "MAJOR": new Scale("Major", [0, 2, 4, 5, 7, 9, 11]),
+        "MAJOR_BLUES": new Scale("Blues (Minor Blues)", [0, 2, 3, 4, 7, 9]),
+        "MAJOR_PENTATONIC": new Scale("Major Pentatonic", [0, 2, 4, 7, 9]),
+        "MINOR_BLUES": new Scale("Blues (Minor Blues)", [0, 3, 5, 6, 7, 10]),
+        "MINOR_PENTATONIC": new Scale("Minor Pentatonic", [0, 3, 5, 7, 10]),
+        "NATURAL_MINOR": new Scale("Natural Minor", [0, 2, 3, 5, 7, 8, 10]),
+        "SPANISH_MINOR": new Scale("Spanish Minor", [0, 1, 3, 5, 7, 8, 10]),
     };
 })(Guitar || (Guitar = {}));

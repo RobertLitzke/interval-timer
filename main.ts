@@ -12,7 +12,7 @@ var currentSchedule = null;
 var controlButtonEl;
 
 // A regex for parsing each line of the schedule.
-const scheduleRegEx = /(\d+):(\d+)\,?([A-z0-9, ]+)*/;
+const scheduleRegEx = /(\d+):(\d+)\,?([A-z0-9#, ]+)*/;
 
 function getSchedule(): Timer.Schedule {
   const scheduleText =
