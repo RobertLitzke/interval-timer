@@ -245,10 +245,10 @@ namespace Guitar {
           var pos = (tuning[i] + j) % 12;
           ctx.strokeText(music_notes[pos][0],
             START_PX + i * STRING_WIDTH_PX - fontSize / 2,
-            START_PX + j * FRET_LENGTH_PX - fontSize / 2;
+            START_PX + j * FRET_LENGTH_PX - fontSize / 2);
           ctx.fillText(music_notes[pos][0],
             START_PX + i * STRING_WIDTH_PX - fontSize / 2,
-            START_PX + j * FRET_LENGTH_PX - fontSize / 2;
+            START_PX + j * FRET_LENGTH_PX - fontSize / 2);
         }
       }
     }
