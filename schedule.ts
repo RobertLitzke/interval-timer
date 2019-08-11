@@ -9,6 +9,8 @@ namespace Timer {
     '#e9bbb5',
   ];
 
+  var countdownTimer = null;
+
   // An instance of a schedule.
   export class Schedule {
     intervals: Array<Interval>;
@@ -43,6 +45,10 @@ namespace Timer {
 
     isFinished(): boolean {
       return this.currentIntervalIndex >= this.intervals.length;
+    }
+
+    isRunning(): boolean {
+      return countdownTimer != null;
     }
 
     getCurrentInterval(): Interval {
@@ -88,14 +94,14 @@ namespace Timer {
 
     updateUpcoming(): void {
       if (this.isFinished()) {
-        this.display.setUpcoming(["-"]);
+        this.display.setUpcoming([]);
         return;
       }
       const upcomingTasks = [];
       const maxSize = Math.min(
-          this.currentIntervalIndex + 2, this.intervals.length);
-      for (var i = this.currentIntervalIndex; i < maxSize; i++) {
-        upcomingTasks.push(this.intervals[i].task);
+          this.currentIntervalIndex + 3, this.intervals.length);
+      for (var i = this.currentIntervalIndex + 1; i < maxSize; i++) {
+        upcomingTasks.push(this.intervals[i]);
       }
       this.display.setUpcoming(upcomingTasks);
     }

@@ -3,91 +3,81 @@
 // <reference path="feature.ts" />
 // <reference path="guitar.ts" />
 // <reference path="schedule.ts" />
+// <reference path="schedule_editor.ts" />
 
 // The HTML countdown timer. If this is not null, the timer is running.
-var countdownTimer = null;
-// The current set of intervals being followed.
-var currentSchedule = null;
+namespace Timer {
+  export class Main {
+    // The current set of intervals being followed.
+    currentSchedule: any;
+    displayController: Timer.DisplayController;
+    audioController: Timer.AudioController;
+    scheduleEditor: Timer.ScheduleEditor;
+    controlButtonEl: HTMLElement;
 
-var controlButtonEl;
-
-// A regex for parsing each line of the schedule.
-const scheduleRegEx = /(\d+):(\d+)\,?([A-z0-9#, ]+)*/;
-
-function getSchedule(): Timer.Schedule {
-  const scheduleText =
-      (<HTMLInputElement>document.querySelector("#schedule")).value.trim();
-  const lines = scheduleText.split("\n").map((el) => el.trim());
-  const schedule = new Timer.Schedule(
-    new Timer.DisplayController(
-      document.querySelector("#timer"),
-      document.querySelector("#total-timer"),
-      document.querySelector("#task-wrapper"),
-      document.querySelector("#task"),
-      document.querySelector('#diagram'),
-      document.querySelector('#status'),
-      document.querySelector('#upcoming')),
-    new Timer.AudioController(
-      document.querySelector('#intro-end-sound'),
-      document.querySelector('#interval-end-sound')));
-  for (const line of lines) {
-    const parsed = line.match(scheduleRegEx);
-    if (!parsed) {
-      console.log("Invalid format");
-      continue;
+    constructor() {
+      this.currentSchedule = null;
+      this.displayController = new Timer.DisplayController(
+          document.querySelector("#timer"),
+          document.querySelector("#total-timer"),
+          document.querySelector("#task-wrapper"),
+          document.querySelector("#task"),
+          document.querySelector('#diagram'),
+          document.querySelector('#status'),
+          document.querySelector('#upcoming'));
+      this.audioController = new Timer.AudioController(
+          document.querySelector('#intro-end-sound'),
+          document.querySelector('#interval-end-sound'));
+      this.scheduleEditor = new Timer.ScheduleEditor(
+          document.querySelector("#schedule-editor"),
+          document.querySelector("#schedule-pretty-editor"),
+          document.querySelector("#schedule-text-editor"),
+          document.querySelector("#set-schedule-control"));
+      this.addControlHandlers();
+      this.currentSchedule = this.scheduleEditor.getSchedule(
+          this.displayController, this.audioController);
+      this.currentSchedule.prepare();
     }
-    const seconds = Number(parsed[1]) * 60 + Number(parsed[2]);
-    const introTime =
-        Number.parseFloat(
-          (<HTMLInputElement>document.querySelector("#warmup")).value)
-        || 0;
 
-    const additionalInfo =
-    parsed[3] ? parsed[3].split(",").map((el) => el.trim()) : [];
-    const name = additionalInfo.length > 0 ? additionalInfo[0] : "";
-    const feature = additionalInfo.length <= 1 ? null :
-        new Guitar.Feature(additionalInfo.slice(1));
-    const interval = new Timer.Interval(seconds,
-        introTime,
-        name,
-        feature);
-    schedule.addInterval(interval);
-  }
-  return schedule;
-}
+    addControlHandlers(): void {
+      this.controlButtonEl = document.querySelector("#start-control");
+      this.controlButtonEl.onclick = () => this.toggleCountdown();
+      (<HTMLElement>document.querySelector("#reset-control")).onclick =
+          () => this.reset();
+    }
 
-function toggle(): void {
-  if (!currentSchedule || currentSchedule.isFinished()) {
-    reset();
-  }
+    toggleCountdown(): void {
+      if (!this.currentSchedule || this.currentSchedule.isFinished()) {
+        this.reset();
+      }
 
-  if (countdownTimer) {
-    currentSchedule.pause();
-    controlButtonEl.innerText = 'START';
-    controlButtonEl.classList.remove('is-warning');
-    controlButtonEl.classList.add('is-success');
-  } else {
-    currentSchedule.start();
-    controlButtonEl.innerText = 'PAUSE';
-    controlButtonEl.classList.remove('is-success');
-    controlButtonEl.classList.add('is-warning');
-  }
-}
+      if (this.currentSchedule.isRunning()) {
+        this.currentSchedule.pause();
+        this.controlButtonEl.innerText = 'START';
+        this.controlButtonEl.classList.remove('is-warning');
+        this.controlButtonEl.classList.add('is-success');
+      } else {
+        this.currentSchedule.start();
+        this.controlButtonEl.innerText = 'PAUSE';
+        this.controlButtonEl.classList.remove('is-success');
+        this.controlButtonEl.classList.add('is-warning');
+      }
+    }
 
-function reset(): void {
-  if (currentSchedule) {
-    currentSchedule.pause();
+    reset(): void {
+      if (this.currentSchedule) {
+        this.currentSchedule.pause();
+      }
+      this.currentSchedule = this.scheduleEditor.getSchedule(
+          this.displayController, this.audioController);
+      this.currentSchedule.prepare();
+      this.controlButtonEl.innerText = 'START';
+      this.controlButtonEl.classList.remove('is-warning');
+      this.controlButtonEl.classList.add('is-success');
+    }
   }
-  currentSchedule = this.getSchedule();
-  currentSchedule.prepare();
-  controlButtonEl.innerText = 'START';
-  controlButtonEl.classList.remove('is-warning');
-  controlButtonEl.classList.add('is-success');
 }
 
 function init() {
-  controlButtonEl = document.querySelector("#start-control");
-  controlButtonEl.onclick = () => toggle();
-  (<HTMLElement>document.querySelector("#reset-control")).onclick =
-      () => reset();
+  new Timer.Main();
 }

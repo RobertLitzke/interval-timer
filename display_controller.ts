@@ -39,14 +39,14 @@ namespace Timer {
           this.formattedTime(seconds) + " / " + this.formattedTime(totalDuration);
     }
 
-    setUpcoming(upcomingTasks: Array<string>): void {
-      while (this.upcomingEl.firstChild) {
-        this.upcomingEl.removeChild(this.upcomingEl.firstChild)
-      }
-      for (const task of upcomingTasks) {
-        const taskEl = document.createElement("li");
-        taskEl.innerText = task;
-        this.upcomingEl.appendChild(taskEl);
+    setUpcoming(upcomingIntervals: Array<Interval>): void {
+      this.clearAllChildren(this.upcomingEl);
+      for (const interval of upcomingIntervals) {
+        const intervalEl = document.createElement("li");
+        const text =
+            `${interval.task} [${this.formattedTime(interval.duration)}]`;
+        intervalEl.innerText = text;
+        this.upcomingEl.appendChild(intervalEl);
       }
     }
 
@@ -55,15 +55,19 @@ namespace Timer {
     }
 
     clearFeature(): void {
-      while (this.diagramEl.firstChild) {
-        this.diagramEl.removeChild(this.diagramEl.firstChild)
-      }
+      this.clearAllChildren(this.diagramEl);
     }
 
     formattedTime(totalSeconds: number): string {
       const minutes = Math.floor(totalSeconds / 60);
       const seconds = (totalSeconds % 60) + "";
       return minutes + ":" + seconds.padStart(2, '0');
+    }
+
+    clearAllChildren(element: HTMLElement): void {
+      while (element.firstChild) {
+        element.removeChild(element.firstChild)
+      }
     }
   }
 }

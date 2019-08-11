@@ -267,10 +267,16 @@ namespace Guitar {
     render(container: HTMLElement): void {
       if (this.config[0] == "NOTES") {
         this.displayNotes(container);
-      } else if (scales2[this.config[0]]) {
+      } else if (scale_names[this.config[0]]) {
         const key = this.config.length > 1 ?
             this.getKeyIndex(this.config[1]) : 0;
-        this.displayScale(container, scales2[this.config[0]], key);
+        const scale = scales[scale_names[this.config[0]]];
+        scale.name = this.config[0];
+        this.displayScale(container, scale, key);
+      } else if (scales[this.config[0]]) {
+        const key = this.config.length > 1 ?
+            this.getKeyIndex(this.config[1]) : 0;
+        this.displayScale(container, scales[this.config[0]], key);
       } else if (chords[this.config[0]]) {
         this.displayChord(container, chords[this.config[0]]);
       }
@@ -332,14 +338,44 @@ namespace Guitar {
       [0, 2, 3, 1, 0, 0]),
   };
 
-  const scales2 = {
-    "DORIAN_MINOR": new Scale("Dorian Minor", [0, 2, 3, 5, 7, 9, 10]),
+  const scale_names = {
+    "Blues": "MINOR_BLUES",
+    "Minor Blues": "MINOR_BLUES",
+    "Major Blues": "MAJOR_BLUES",
+    "Natural Minor": "NATURAL_MINOR",
+    "Pure Minor": "NATURAL_MINOR",
+    "Minor": "NATURAL_MINOR",
+    "Major": "MAJOR",
+    "Spanish Minor": "PHRYGIAN",
+    "Dominant 7th": "MIXOLYDIAN",
+    "Half-Diminished": "LOCRIAN",
+    "Lydian Major": "LYDIAN",
+    "Pentatonic Minor": "MINOR_PENTATONIC",
+    "Pentatonic Major": "MAJOR_PENTATONIC",
+    "Country & Western": "MAJOR_PENTATONIC",
+
+    // Modes
+    "Ionian Mode": "MAJOR",
+    "Dorian Mode": "DORIAN",
+    "Dorian Minor": "DORIAN",
+    "Phrygian Mode": "PHRYGIAN",
+    "Lydian Mode": "LYDIAN",
+    "Mixolydian Mode": "MIXOLYDIAN",
+    "Aeolian Mode": "NATURAL_MINOR",
+    "Locrian Mode": "LOCRIAN",
+  };
+
+  const scales = {
+    "DORIAN": new Scale("Dorian Minor", [0, 2, 3, 5, 7, 9, 10]),
+    "PHRYGIAN": new Scale("Spanish Minor", [0, 1, 3, 5, 7, 8, 10]),
+    "LYDIAN": new Scale("Lydian", [0, 2, 4, 6, 7, 9, 11]),
+    "MIXOLYDIAN": new Scale("Mixolydian", [0, 2, 4, 5, 7, 9, 10]),
+    "LOCRIAN": new Scale("Locrian", [0, 1, 3, 5, 6, 8, 10]),
     "MAJOR": new Scale("Major", [0, 2, 4, 5, 7, 9, 11]),
     "MAJOR_BLUES": new Scale("Blues (Minor Blues)", [0, 2, 3, 4, 7, 9]),
     "MAJOR_PENTATONIC": new Scale("Major Pentatonic", [0, 2, 4, 7, 9]),
     "MINOR_BLUES": new Scale("Blues (Minor Blues)", [0, 3, 5, 6, 7, 10]),
     "MINOR_PENTATONIC": new Scale("Minor Pentatonic", [0, 3, 5, 7, 10]),
     "NATURAL_MINOR": new Scale("Natural Minor", [0, 2, 3, 5, 7, 8, 10]),
-    "SPANISH_MINOR": new Scale("Spanish Minor", [0, 1, 3, 5, 7, 8, 10]),
   };
 }

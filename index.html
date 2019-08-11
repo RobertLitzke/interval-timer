@@ -29,7 +29,7 @@
         margin: 0 12px;
       }
 
-      #schedule {
+      #schedule-text-editor {
         width: 100%;
         height: 200px;
       }
@@ -92,14 +92,17 @@
           <div class="tile is-parent">
             <article class="tile is-child notification">
               <p class="subtitle">Schedule</p>
-              <textarea id="schedule">
+              <div id="schedule-editor">
+                <div id="schedule-pretty-editor">
+                </div>
+                <textarea id="schedule-text-editor">
 2:00 Exercise 1
 2:00 Exercise 2
 2:00 Exercise 3
 2:00 Exercise 4
 2:00 Exercise 5
-4:00 Minor Pentatonic Scale, MINOR_PENTATONIC, A
-4:00 Minor Scale, NATURAL_MINOR, A
+4:00 Minor Pentatonic Scale, Pentatonic Minor, A
+4:00 Minor Scale, Natural Minor, A
 10:00 Chords
 2:00 Lick 1
 2:00 Lick 2
@@ -108,7 +111,9 @@
 2:00 Lick 5
 7:00 Solo to backing track
 10:00 Practice Song
-              </textarea>
+                </textarea>
+                <button id="set-schedule-control" class="control button is-success">UPDATE</button>
+              </div>
             </article>
           </div>
         </div>

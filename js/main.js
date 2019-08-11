@@ -1,3 +1,42 @@
+// <reference path="audio_controller.ts" />
+// <reference path="display_controller.ts" />
+// <reference path="feature.ts" />
+// <reference path="schedule.ts" />
+var Timer;
+(function (Timer) {
+    const scheduleRegEx = /(\d+):(\d+)\,?([A-z0-9#, ]+)*/;
+    class ScheduleEditor {
+        constructor(el, prettyEl, textEl, updateButtonEl) {
+            this.el = el;
+            this.prettyEl = el;
+            this.textEl = textEl;
+            this.updateButtonEl = updateButtonEl;
+        }
+        getSchedule(displayController, audioController) {
+            const scheduleText = this.textEl.value.trim();
+            const lines = scheduleText.split("\n").map((el) => el.trim());
+            const schedule = new Timer.Schedule(displayController, audioController);
+            for (const line of lines) {
+                const parsed = line.match(scheduleRegEx);
+                if (!parsed) {
+                    console.log("Invalid format");
+                    continue;
+                }
+                const seconds = Number(parsed[1]) * 60 + Number(parsed[2]);
+                const introTime = Number.parseFloat(document.querySelector("#warmup").value)
+                    || 0;
+                const additionalInfo = parsed[3] ? parsed[3].split(",").map((el) => el.trim()) : [];
+                const name = additionalInfo.length > 0 ? additionalInfo[0] : "";
+                const feature = additionalInfo.length <= 1 ? null :
+                    new Guitar.Feature(additionalInfo.slice(1));
+                const interval = new Timer.Interval(seconds, introTime, name, feature);
+                schedule.addInterval(interval);
+            }
+            return schedule;
+        }
+    }
+    Timer.ScheduleEditor = ScheduleEditor;
+})(Timer || (Timer = {}));
 var Timer;
 (function (Timer) {
     // Colors for tasks in intervals.
@@ -8,6 +47,7 @@ var Timer;
         '#8da47e',
         '#e9bbb5',
     ];
+    var countdownTimer = null;
     // An instance of a schedule.
     class Schedule {
         constructor(display, audio) {
@@ -28,6 +68,9 @@ var Timer;
         }
         isFinished() {
             return this.currentIntervalIndex >= this.intervals.length;
+        }
+        isRunning() {
+            return countdownTimer != null;
         }
         getCurrentInterval() {
             return this.isFinished() ?
@@ -68,13 +111,13 @@ var Timer;
         }
         updateUpcoming() {
             if (this.isFinished()) {
-                this.display.setUpcoming(["-"]);
+                this.display.setUpcoming([]);
                 return;
             }
             const upcomingTasks = [];
-            const maxSize = Math.min(this.currentIntervalIndex + 2, this.intervals.length);
-            for (var i = this.currentIntervalIndex; i < maxSize; i++) {
-                upcomingTasks.push(this.intervals[i].task);
+            const maxSize = Math.min(this.currentIntervalIndex + 3, this.intervals.length);
+            for (var i = this.currentIntervalIndex + 1; i < maxSize; i++) {
+                upcomingTasks.push(this.intervals[i]);
             }
             this.display.setUpcoming(upcomingTasks);
         }
@@ -209,28 +252,30 @@ var Timer;
             this.totalTimerEl.innerText =
                 this.formattedTime(seconds) + " / " + this.formattedTime(totalDuration);
         }
-        setUpcoming(upcomingTasks) {
-            while (this.upcomingEl.firstChild) {
-                this.upcomingEl.removeChild(this.upcomingEl.firstChild);
-            }
-            for (const task of upcomingTasks) {
-                const taskEl = document.createElement("li");
-                taskEl.innerText = task;
-                this.upcomingEl.appendChild(taskEl);
+        setUpcoming(upcomingIntervals) {
+            this.clearAllChildren(this.upcomingEl);
+            for (const interval of upcomingIntervals) {
+                const intervalEl = document.createElement("li");
+                const text = `${interval.task} [${this.formattedTime(interval.duration)}]`;
+                intervalEl.innerText = text;
+                this.upcomingEl.appendChild(intervalEl);
             }
         }
         renderFeature(feature) {
             feature.render(this.diagramEl);
         }
         clearFeature() {
-            while (this.diagramEl.firstChild) {
-                this.diagramEl.removeChild(this.diagramEl.firstChild);
-            }
+            this.clearAllChildren(this.diagramEl);
         }
         formattedTime(totalSeconds) {
             const minutes = Math.floor(totalSeconds / 60);
             const seconds = (totalSeconds % 60) + "";
             return minutes + ":" + seconds.padStart(2, '0');
+        }
+        clearAllChildren(element) {
+            while (element.firstChild) {
+                element.removeChild(element.firstChild);
+            }
         }
     }
     Timer.DisplayController = DisplayController;
@@ -240,67 +285,58 @@ var Timer;
 // <reference path="feature.ts" />
 // <reference path="guitar.ts" />
 // <reference path="schedule.ts" />
+// <reference path="schedule_editor.ts" />
 // The HTML countdown timer. If this is not null, the timer is running.
-var countdownTimer = null;
-// The current set of intervals being followed.
-var currentSchedule = null;
-var controlButtonEl;
-// A regex for parsing each line of the schedule.
-const scheduleRegEx = /(\d+):(\d+)\,?([A-z0-9#, ]+)*/;
-function getSchedule() {
-    const scheduleText = document.querySelector("#schedule").value.trim();
-    const lines = scheduleText.split("\n").map((el) => el.trim());
-    const schedule = new Timer.Schedule(new Timer.DisplayController(document.querySelector("#timer"), document.querySelector("#total-timer"), document.querySelector("#task-wrapper"), document.querySelector("#task"), document.querySelector('#diagram'), document.querySelector('#status'), document.querySelector('#upcoming')), new Timer.AudioController(document.querySelector('#intro-end-sound'), document.querySelector('#interval-end-sound')));
-    for (const line of lines) {
-        const parsed = line.match(scheduleRegEx);
-        if (!parsed) {
-            console.log("Invalid format");
-            continue;
+var Timer;
+(function (Timer) {
+    class Main {
+        constructor() {
+            this.currentSchedule = null;
+            this.displayController = new Timer.DisplayController(document.querySelector("#timer"), document.querySelector("#total-timer"), document.querySelector("#task-wrapper"), document.querySelector("#task"), document.querySelector('#diagram'), document.querySelector('#status'), document.querySelector('#upcoming'));
+            this.audioController = new Timer.AudioController(document.querySelector('#intro-end-sound'), document.querySelector('#interval-end-sound'));
+            this.scheduleEditor = new Timer.ScheduleEditor(document.querySelector("#schedule-editor"), document.querySelector("#schedule-pretty-editor"), document.querySelector("#schedule-text-editor"), document.querySelector("#set-schedule-control"));
+            this.addControlHandlers();
+            this.currentSchedule = this.scheduleEditor.getSchedule(this.displayController, this.audioController);
+            this.currentSchedule.prepare();
         }
-        const seconds = Number(parsed[1]) * 60 + Number(parsed[2]);
-        const introTime = Number.parseFloat(document.querySelector("#warmup").value)
-            || 0;
-        const additionalInfo = parsed[3] ? parsed[3].split(",").map((el) => el.trim()) : [];
-        const name = additionalInfo.length > 0 ? additionalInfo[0] : "";
-        const feature = additionalInfo.length <= 1 ? null :
-            new Guitar.Feature(additionalInfo.slice(1));
-        const interval = new Timer.Interval(seconds, introTime, name, feature);
-        schedule.addInterval(interval);
+        addControlHandlers() {
+            this.controlButtonEl = document.querySelector("#start-control");
+            this.controlButtonEl.onclick = () => this.toggleCountdown();
+            document.querySelector("#reset-control").onclick =
+                () => this.reset();
+        }
+        toggleCountdown() {
+            if (!this.currentSchedule || this.currentSchedule.isFinished()) {
+                this.reset();
+            }
+            if (this.currentSchedule.isRunning()) {
+                this.currentSchedule.pause();
+                this.controlButtonEl.innerText = 'START';
+                this.controlButtonEl.classList.remove('is-warning');
+                this.controlButtonEl.classList.add('is-success');
+            }
+            else {
+                this.currentSchedule.start();
+                this.controlButtonEl.innerText = 'PAUSE';
+                this.controlButtonEl.classList.remove('is-success');
+                this.controlButtonEl.classList.add('is-warning');
+            }
+        }
+        reset() {
+            if (this.currentSchedule) {
+                this.currentSchedule.pause();
+            }
+            this.currentSchedule = this.scheduleEditor.getSchedule(this.displayController, this.audioController);
+            this.currentSchedule.prepare();
+            this.controlButtonEl.innerText = 'START';
+            this.controlButtonEl.classList.remove('is-warning');
+            this.controlButtonEl.classList.add('is-success');
+        }
     }
-    return schedule;
-}
-function toggle() {
-    if (!currentSchedule || currentSchedule.isFinished()) {
-        reset();
-    }
-    if (countdownTimer) {
-        currentSchedule.pause();
-        controlButtonEl.innerText = 'START';
-        controlButtonEl.classList.remove('is-warning');
-        controlButtonEl.classList.add('is-success');
-    }
-    else {
-        currentSchedule.start();
-        controlButtonEl.innerText = 'PAUSE';
-        controlButtonEl.classList.remove('is-success');
-        controlButtonEl.classList.add('is-warning');
-    }
-}
-function reset() {
-    if (currentSchedule) {
-        currentSchedule.pause();
-    }
-    currentSchedule = this.getSchedule();
-    currentSchedule.prepare();
-    controlButtonEl.innerText = 'START';
-    controlButtonEl.classList.remove('is-warning');
-    controlButtonEl.classList.add('is-success');
-}
+    Timer.Main = Main;
+})(Timer || (Timer = {}));
 function init() {
-    controlButtonEl = document.querySelector("#start-control");
-    controlButtonEl.onclick = () => toggle();
-    document.querySelector("#reset-control").onclick =
-        () => reset();
+    new Timer.Main();
 }
 // <reference path="feature.ts" />
 var Guitar;
@@ -515,10 +551,17 @@ var Guitar;
             if (this.config[0] == "NOTES") {
                 this.displayNotes(container);
             }
-            else if (scales2[this.config[0]]) {
+            else if (scale_names[this.config[0]]) {
                 const key = this.config.length > 1 ?
                     this.getKeyIndex(this.config[1]) : 0;
-                this.displayScale(container, scales2[this.config[0]], key);
+                const scale = scales[scale_names[this.config[0]]];
+                scale.name = this.config[0];
+                this.displayScale(container, scale, key);
+            }
+            else if (scales[this.config[0]]) {
+                const key = this.config.length > 1 ?
+                    this.getKeyIndex(this.config[1]) : 0;
+                this.displayScale(container, scales[this.config[0]], key);
             }
             else if (chords[this.config[0]]) {
                 this.displayChord(container, chords[this.config[0]]);
@@ -555,14 +598,42 @@ var Guitar;
         "D_MAJOR": new Chord("D", [-1, -1, 0, 1, 2, 1], [-1, -1, 2, 1, 2, 3]),
         "E_MAJOR": new Chord("E", [0, 2, 2, 1, 0, 0], [0, 2, 3, 1, 0, 0]),
     };
-    const scales2 = {
-        "DORIAN_MINOR": new Scale("Dorian Minor", [0, 2, 3, 5, 7, 9, 10]),
+    const scale_names = {
+        "Blues": "MINOR_BLUES",
+        "Minor Blues": "MINOR_BLUES",
+        "Major Blues": "MAJOR_BLUES",
+        "Natural Minor": "NATURAL_MINOR",
+        "Pure Minor": "NATURAL_MINOR",
+        "Minor": "NATURAL_MINOR",
+        "Major": "MAJOR",
+        "Spanish Minor": "PHRYGIAN",
+        "Dominant 7th": "MIXOLYDIAN",
+        "Half-Diminished": "LOCRIAN",
+        "Lydian Major": "LYDIAN",
+        "Pentatonic Minor": "MINOR_PENTATONIC",
+        "Pentatonic Major": "MAJOR_PENTATONIC",
+        "Country & Western": "MAJOR_PENTATONIC",
+        // Modes
+        "Ionian Mode": "MAJOR",
+        "Dorian Mode": "DORIAN",
+        "Dorian Minor": "DORIAN",
+        "Phrygian Mode": "PHRYGIAN",
+        "Lydian Mode": "LYDIAN",
+        "Mixolydian Mode": "MIXOLYDIAN",
+        "Aeolian Mode": "NATURAL_MINOR",
+        "Locrian Mode": "LOCRIAN",
+    };
+    const scales = {
+        "DORIAN": new Scale("Dorian Minor", [0, 2, 3, 5, 7, 9, 10]),
+        "PHRYGIAN": new Scale("Spanish Minor", [0, 1, 3, 5, 7, 8, 10]),
+        "LYDIAN": new Scale("Lydian", [0, 2, 4, 6, 7, 9, 11]),
+        "MIXOLYDIAN": new Scale("Mixolydian", [0, 2, 4, 5, 7, 9, 10]),
+        "LOCRIAN": new Scale("Locrian", [0, 1, 3, 5, 6, 8, 10]),
         "MAJOR": new Scale("Major", [0, 2, 4, 5, 7, 9, 11]),
         "MAJOR_BLUES": new Scale("Blues (Minor Blues)", [0, 2, 3, 4, 7, 9]),
         "MAJOR_PENTATONIC": new Scale("Major Pentatonic", [0, 2, 4, 7, 9]),
         "MINOR_BLUES": new Scale("Blues (Minor Blues)", [0, 3, 5, 6, 7, 10]),
         "MINOR_PENTATONIC": new Scale("Minor Pentatonic", [0, 3, 5, 7, 10]),
         "NATURAL_MINOR": new Scale("Natural Minor", [0, 2, 3, 5, 7, 8, 10]),
-        "SPANISH_MINOR": new Scale("Spanish Minor", [0, 1, 3, 5, 7, 8, 10]),
     };
 })(Guitar || (Guitar = {}));
