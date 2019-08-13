@@ -20,6 +20,17 @@ namespace Guitar {
     ["G#", "Ab"],
   ];
 
+  // Number of markers, starting from the nut.
+  const fretboardMarkerDots = [
+    0,0,0,1,0,1,0,1,0,1,0,0,2,0,0,1,0,1,0,1,0,1
+  ];
+
+  // Fret numbers to label, starting from the nut.
+  const fretNumbers = [
+    "","","","III","","V","","VII","","IX","","",
+    "XII","","","XV","","XVII","","XIX","","XXI"
+  ];
+
   // Offsets from A, for EADGBE tuning. More tunings to be supported.
   const tuning = [7, 0, 5, 10, 2, 7];
 
@@ -57,7 +68,7 @@ namespace Guitar {
     addCanvas(element: HTMLElement): HTMLCanvasElement {
       const canvasEl = document.createElement('canvas');
       canvasEl.id = 'canvas';
-      canvasEl.width = 300;
+      canvasEl.width = 400;
       canvasEl.height = 600;
       element.appendChild(canvasEl);
       return canvasEl;
@@ -65,18 +76,22 @@ namespace Guitar {
 
     // Renders an empty fretboard with the given parameters.
     renderFrets(ctx: any,
-        start: number,
+        startLeft: number,
+        startTop: number,
         stringWidth: number,
         fretLength: number,
         fretCount: number): void {
       const textHeight = 12;
 
+      ctx.fillStyle = "#aaa";
       // Verticals
       for (var i = 0; i < 6; i++) {
         ctx.beginPath();
         ctx.lineWidth = stringWidths[i];
-        ctx.moveTo(start + i * stringWidth, start);
-        ctx.lineTo(start + i * stringWidth, start + (fretCount * fretLength));
+        ctx.moveTo(
+          startLeft + i * stringWidth, startTop);
+        ctx.lineTo(
+          startLeft + i * stringWidth, startTop + (fretCount * fretLength));
         ctx.stroke();
       }
       // Horizontals
@@ -85,11 +100,46 @@ namespace Guitar {
       ctx.font = textHeight + 'px';
       for (var i = 0; i <= fretCount; i++) {
         ctx.beginPath();
-        ctx.moveTo(start, start + i * fretLength);
-        ctx.lineTo(start + (5 * stringWidth), start + i * fretLength);
-        ctx.fillText(i, 10, start + i * fretLength + (textHeight / 4));
+        ctx.moveTo(startLeft, startTop + i * fretLength);
+        ctx.lineTo(startLeft + (5 * stringWidth), startTop + i * fretLength);
+        if (fretNumbers[i]) {
+          ctx.fillText(
+              fretNumbers[i],
+              startLeft - 30,
+              startTop + (i - .5) * fretLength + (textHeight / 4));
+        }
+
         ctx.stroke();
         ctx.lineWidth = 1;
+
+        if (fretboardMarkerDots[i] == 1) {
+          ctx.beginPath();
+          ctx.arc(startLeft + 2.5 * STRING_WIDTH_PX,
+              startTop + (i - .5) * FRET_LENGTH_PX,
+              NOTE_RADIUS_PX / 2,
+              0,
+              2 * Math.PI);
+          ctx.fill();
+        } else if (fretboardMarkerDots[i] == 2) {
+          ctx.beginPath();
+          ctx.arc(startLeft + 1.5 * STRING_WIDTH_PX,
+              startTop + (i - .5) * FRET_LENGTH_PX,
+              NOTE_RADIUS_PX / 2,
+              0,
+              2 * Math.PI);
+          ctx.fill();
+          ctx.beginPath();
+          ctx.arc(startLeft + 3.5 * STRING_WIDTH_PX,
+              startTop + (i - .5) * FRET_LENGTH_PX,
+              NOTE_RADIUS_PX / 2,
+              0,
+              2 * Math.PI);
+          ctx.fill();
+        }
+
+
+
+
       }
     }
 
@@ -135,7 +185,7 @@ namespace Guitar {
       ctx.resetTransform();
       ctx.translate(0.5, 0.5);
       this.renderFrets(
-        ctx, START_PX, STRING_WIDTH_PX, FRET_LENGTH_PX, fretCount);
+        ctx, START_PX, START_PX, STRING_WIDTH_PX, FRET_LENGTH_PX, fretCount);
       var i =1;
       var fretNum = 1;
 
@@ -143,22 +193,25 @@ namespace Guitar {
         for (var j = 0; j <= fretCount; j++) {
           var pos = tuning[i] - keyOffset + j;
           pos = pos >= 0 ? pos : 12 + pos;
+          const yPos = j - .5;
           if (scale.degrees.indexOf(pos % 12) >= 0) {
             ctx.fillStyle = 'black';
             ctx.beginPath();
             ctx.arc(START_PX + i * STRING_WIDTH_PX,
-              START_PX + j * FRET_LENGTH_PX,
+              START_PX + yPos * FRET_LENGTH_PX,
               NOTE_RADIUS_PX,
               0,
               2 * Math.PI);
-            ctx.fill();
+            if (yPos > 0) {
+              ctx.fill();
+            }
             ctx.stroke();
           }
           if (pos % 12 == 0) {
-            ctx.fillStyle = 'white';
+            ctx.fillStyle = yPos > 0 ? 'white' : 'black';
             this.drawStar(ctx,
               START_PX + i * STRING_WIDTH_PX,
-              START_PX + j * FRET_LENGTH_PX,
+              START_PX + yPos * FRET_LENGTH_PX,
               NOTE_RADIUS_PX / 2,
               5,
               2);
@@ -167,56 +220,81 @@ namespace Guitar {
       }
     }
 
-    displayChord(diagramEl: any, chord: Chord): void {
+    // Displays the given chords.
+    displayChords(diagramEl: any, chords: Array<Chord>): void {
       this.clearAllChildren(diagramEl);
-      this.addHeader(diagramEl, chord.name + " Chord");
+      const chordNames = [];
+      for (const chord of chords) {
+        chordNames.push(chord.name + " Chord");
+      }
+      this.addHeader(diagramEl, chordNames.join(", "));
       const canvasEl = this.addCanvas(diagramEl);
       diagramEl.appendChild(canvasEl);
-      this.drawChord(canvasEl, chord);
+      for (const [i, chord] of chords.entries()) {
+        this.drawChord(canvasEl, chord, i);
+      }
+
     }
 
-    drawChord(canvasEl: HTMLCanvasElement, chord: Chord): void {
+    drawChord(canvasEl: HTMLCanvasElement, chord: Chord, index: number): void {
       const fretCount = 6;
+      const fontSize = 12;
       const ctx = canvasEl.getContext('2d');
-      // Reset.
-      ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
-      ctx.fillStyle = 'black';
       ctx.resetTransform();
       ctx.translate(0.5, 0.5);
+      const leftIndex = index % 2;
+      const leftPos =
+          START_PX * (leftIndex + 1) + leftIndex * STRING_WIDTH_PX * 6;
+      const topIndex = Math.floor(index / 2);
+      const topPos =
+          START_PX * (topIndex + 1) + topIndex * fretCount * FRET_LENGTH_PX;
       this.renderFrets(
-        ctx, START_PX, STRING_WIDTH_PX, FRET_LENGTH_PX, fretCount);
+        ctx, leftPos, topPos, STRING_WIDTH_PX, FRET_LENGTH_PX, fretCount);
       var i =1;
+
       var fretNum = 1;
+      ctx.font = fontSize + 'px Sans-serif';
       for (var i = 0; i < chord.strings.length; i++) {
+        ctx.fillStyle = 'black';
         const fret = chord.strings[i];
-        const yPos = fret == 0 ? -.5 : fret;
+        const finger = chord.fingers[i];
+        const yPos = fret - .5;
         ctx.beginPath();
         if (fret >= 0) {
-          ctx.arc(START_PX + i * STRING_WIDTH_PX,
-            START_PX + yPos * FRET_LENGTH_PX,
+          ctx.arc(leftPos + i * STRING_WIDTH_PX,
+            topPos + yPos * FRET_LENGTH_PX,
             NOTE_RADIUS_PX,
             0,
             2 * Math.PI);
           if (fret > 0) {
             ctx.fill();
+            if (finger > 0) {
+              ctx.fillStyle = 'white';
+              // Arbitrary positioning of 1/3 fontSize.
+              ctx.fillText("" + finger,
+                leftPos + i * STRING_WIDTH_PX - fontSize / 3,
+                topPos + yPos * FRET_LENGTH_PX + fontSize / 3);
+            }
           }
           ctx.stroke();
         } else {
+          // A muted string.
           //Downward to the left.
-          ctx.moveTo(START_PX + i * STRING_WIDTH_PX - .5 * NOTE_RADIUS_PX,
-              START_PX - 2 * NOTE_RADIUS_PX);
-          ctx.lineTo(START_PX + i * STRING_WIDTH_PX + .5 * NOTE_RADIUS_PX,
-              START_PX - 1 * NOTE_RADIUS_PX);
+          ctx.moveTo(leftPos + i * STRING_WIDTH_PX - .5 * NOTE_RADIUS_PX,
+              topPos - 2 * NOTE_RADIUS_PX);
+          ctx.lineTo(leftPos + i * STRING_WIDTH_PX + .5 * NOTE_RADIUS_PX,
+              topPos - 1 * NOTE_RADIUS_PX);
           // Downward to the right.
-          ctx.moveTo(START_PX + i * STRING_WIDTH_PX + .5 * NOTE_RADIUS_PX,
-              START_PX - 2 * NOTE_RADIUS_PX);
-          ctx.lineTo(START_PX + i * STRING_WIDTH_PX - .5 * NOTE_RADIUS_PX,
-              START_PX - 1 * NOTE_RADIUS_PX);
+          ctx.moveTo(leftPos + i * STRING_WIDTH_PX + .5 * NOTE_RADIUS_PX,
+              topPos - 2 * NOTE_RADIUS_PX);
+          ctx.lineTo(leftPos + i * STRING_WIDTH_PX - .5 * NOTE_RADIUS_PX,
+              topPos - 1 * NOTE_RADIUS_PX);
           ctx.stroke();
         }
       }
     }
 
+    // Simply displays the notes on the fretboard.
     displayNotes(diagramEl: any): void {
       this.clearAllChildren(diagramEl);
       this.addHeader(diagramEl, "Notes on the fretboard");
@@ -229,13 +307,11 @@ namespace Guitar {
       const fretCount = 18;
       const fontSize = 16;
       const ctx = canvasEl.getContext('2d');
-      // Reset.
-      ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
       ctx.fillStyle = 'black';
       ctx.resetTransform();
       ctx.translate(0.5, 0.5);
       this.renderFrets(
-        ctx, START_PX, STRING_WIDTH_PX, FRET_LENGTH_PX, fretCount);
+        ctx, START_PX, START_PX, STRING_WIDTH_PX, FRET_LENGTH_PX, fretCount);
       ctx.strokeStyle = 'white';
       ctx.lineWidth = 8;
       ctx.fillStyle = 'black';
@@ -265,20 +341,31 @@ namespace Guitar {
     }
 
     render(container: HTMLElement): void {
-      if (this.config[0] == "NOTES") {
-        this.displayNotes(container);
-      } else if (scale_names[this.config[0]]) {
-        const key = this.config.length > 1 ?
-            this.getKeyIndex(this.config[1]) : 0;
-        const scale = scales[scale_names[this.config[0]]];
-        scale.name = this.config[0];
-        this.displayScale(container, scale, key);
-      } else if (scales[this.config[0]]) {
-        const key = this.config.length > 1 ?
-            this.getKeyIndex(this.config[1]) : 0;
-        this.displayScale(container, scales[this.config[0]], key);
-      } else if (chords[this.config[0]]) {
-        this.displayChord(container, chords[this.config[0]]);
+      switch (this.config[0]) {
+        case "Notes":
+          this.displayNotes(container);
+          break;
+        case "Scale":
+          const key = this.config.length > 2 ?
+              this.getKeyIndex(this.config[2]) : 0;
+          if (scale_names[this.config[1]]) {
+            const scale = scales[scale_names[this.config[1]]];
+            scale.name = this.config[1];
+            this.displayScale(container, scale, key);
+          } else if (scales[this.config[1]]) {
+            this.displayScale(container, scales[this.config[1]], key);
+          }
+          break;
+        case "Chord":
+          const chords = [];
+          for (var i = 1; i < this.config.length; i++) {
+            if (this.config[i] == "Chord") {
+              i++;
+            }
+            chords.push(chord_library[this.config[i]]);
+          }
+          this.displayChords(container, chords);
+          break;
       }
     }
   }
@@ -323,7 +410,14 @@ namespace Guitar {
     }
   }
 
-  const chords = {
+  const categories = [
+    "Chord",
+    "Scale",
+    "Notes",
+    "TAB",
+  ]
+
+  const chord_library = {
     "A_MAJOR": new Chord("A",
       [-1, 0, 2, 2, 2, 0],
       [-1, 0, 2, 1, 3, 0]),

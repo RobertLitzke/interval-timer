@@ -1,0 +1,10 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "removeComments": false,
+    "preserveConstEnums": true,
+    "sourceRoot": ".",
+    "rootDir": ".",
+    "sourceMap": true
+  }
+}
