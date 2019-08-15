@@ -59,9 +59,14 @@ namespace Timer {
     }
 
     formattedTime(totalSeconds: number): string {
-      const minutes = Math.floor(totalSeconds / 60);
+      const remainder = Math.floor(totalSeconds / 60);
       const seconds = (totalSeconds % 60) + "";
-      return minutes + ":" + seconds.padStart(2, '0');
+      if (remainder < 60) {
+        return `${remainder}:${seconds.padStart(2, '0')}`;
+      }
+      const hours = Math.floor(remainder / 60);
+      const minutes = (remainder % 60) + "";
+      return `${hours}:${minutes.padStart(2, '0')}:${seconds.padStart(2,'0')}`;
     }
 
     clearAllChildren(element: HTMLElement): void {

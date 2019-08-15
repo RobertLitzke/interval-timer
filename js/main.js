@@ -56,9 +56,14 @@ var Timer;
             this.clearAllChildren(this.diagramEl);
         }
         formattedTime(totalSeconds) {
-            const minutes = Math.floor(totalSeconds / 60);
+            const remainder = Math.floor(totalSeconds / 60);
             const seconds = (totalSeconds % 60) + "";
-            return minutes + ":" + seconds.padStart(2, '0');
+            if (remainder < 60) {
+                return `${remainder}:${seconds.padStart(2, '0')}`;
+            }
+            const hours = Math.floor(remainder / 60);
+            const minutes = (remainder % 60) + "";
+            return `${hours}:${minutes.padStart(2, '0')}:${seconds.padStart(2, '0')}`;
         }
         clearAllChildren(element) {
             while (element.firstChild) {
@@ -664,13 +669,23 @@ var Timer;
 // <reference path="schedule.ts" />
 var Timer;
 (function (Timer) {
-    const scheduleRegEx = /(\d+):(\d+)\,?([A-z0-9#, ]+)*/;
+    const scheduleRegEx = /([0-9:]+),?([A-z0-9#, ]+)*/;
     class ScheduleEditor {
         constructor(el, prettyEl, textEl, updateButtonEl) {
             this.el = el;
             this.prettyEl = el;
             this.textEl = textEl;
             this.updateButtonEl = updateButtonEl;
+        }
+        // Given an input in the form "seconds", "minutes:seconds" or
+        // "hours:minutes:seconds", output total seconds as a number.
+        getTotalSeconds(input) {
+            const split = input.split(":");
+            var seconds = 0;
+            for (var i = split.length - 1; i >= 0; i--) {
+                seconds += Number(split[i]) * Math.pow(60, split.length - i - 1);
+            }
+            return seconds;
         }
         getSchedule(displayController, audioController) {
             const scheduleText = this.textEl.value.trim();
@@ -682,10 +697,10 @@ var Timer;
                     console.log("Invalid format");
                     continue;
                 }
-                const seconds = Number(parsed[1]) * 60 + Number(parsed[2]);
+                const seconds = this.getTotalSeconds(parsed[1]);
                 const introTime = Number.parseFloat(document.querySelector("#warmup").value)
                     || 0;
-                const additionalInfo = parsed[3] ? parsed[3].split(",").map((el) => el.trim()) : [];
+                const additionalInfo = parsed[2] ? parsed[2].split(",").map((el) => el.trim()) : [];
                 const name = additionalInfo.length > 0 ? additionalInfo[0] : "";
                 const feature = additionalInfo.length <= 1 ? null :
                     new Guitar.Feature(additionalInfo.slice(1));

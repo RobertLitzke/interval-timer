@@ -26,3 +26,6 @@ or chords,  tabs, etc.
 * Good mobile support.
 * Metronome?
 * Basic support for some non-Guitar feature (ensure multiple features work).
+* Make stop time precise, better display of intro times.
+* Allow sub-intervals.
+* Less rigid parsing of csv.
