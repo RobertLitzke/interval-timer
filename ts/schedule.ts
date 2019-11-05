@@ -58,17 +58,20 @@ namespace Timer {
 
     onTimerUpdate(time: number): void {
       this.display.setTime(time);
-      this.display.setTotalTime(this.accumulatedSeconds, this.totalDuration);
+      this.setTotalTime();
       this.accumulatedSeconds++;
     }
 
     onIntroEnd(): void {
       this.audio.playIntroEnd();
+      this.setDisplayTask(this.getCurrentInterval());
+      this.display.flashOverlay();
     }
 
     onIntervalEnd(): void {
       this.currentIntervalIndex += 1;
       this.audio.playIntervalEnd();
+      this.display.flashOverlay();
       if (!this.isFinished()) {
         this.setDisplayTask(this.getCurrentInterval());
         this.updateUpcoming();
@@ -79,8 +82,16 @@ namespace Timer {
       countdownTimer = null;
     }
 
+    setTotalTime(): void {
+      this.display.setTotalTime(this.accumulatedSeconds, this.totalDuration);
+    }
+
+
     setDisplayTask(interval: Interval): void {
-      this.display.setTask(interval.task, interval.color);
+      const suffix = interval.isIntroActive() ? " (Warmup)" : "";
+      this.display.setTask(
+        interval.task + suffix,
+        interval.color);
       if (interval.feature) {
         this.display.renderFeature(interval.feature);
       } else {
@@ -90,6 +101,8 @@ namespace Timer {
 
     setDisplayFinished(): void {
       this.display.setTask('DONE!', '');
+      this.display.setStatus(Status.Stop);
+      this.display.setStart();
     }
 
     updateUpcoming(): void {
@@ -111,12 +124,15 @@ namespace Timer {
       if (!interval) {
         return;
       }
+      this.display.setPause();
+      this.display.setStatus(Status.Play);
       interval.start();
     }
 
     prepare(): void {
-      this.display.setTime(this.getCurrentInterval().duration);
+      this.display.setTime(this.getCurrentInterval().getCurrentTimeRemaining());
       this.setDisplayTask(this.getCurrentInterval());
+      this.setTotalTime();
       this.updateUpcoming();
     }
 
@@ -125,6 +141,8 @@ namespace Timer {
       if (!interval) {
         return;
       }
+      this.display.setStart();
+      this.display.setStatus(Status.Pause);
       interval.pause();
     }
   }
@@ -163,8 +181,19 @@ namespace Timer {
           finishedCallback);
     }
 
+    isIntroActive(): boolean {
+      return !this.timer.isIntroFinished;
+    }
+
     getTotalDuration(): number {
       return this.duration + this.introDuration;
+    }
+
+    getCurrentTimeRemaining(): number {
+      if (this.isIntroActive()) {
+        return this.timer.introTimeRemaining;
+      }
+      return this.timer.timeRemaining;
     }
 
     start(): void {
@@ -206,20 +235,20 @@ namespace Timer {
         return;
       }
       if (this.introTimeRemaining > 0) {
+      this.introTimeRemaining -= 1;
         this.updateCallback(this.introTimeRemaining);
-        this.introTimeRemaining -= 1;
         countdownTimer = setTimeout(
           () => this.countdown(),
           1000);
         return;
       } else if (!this.isIntroFinished) {
+      this.isIntroFinished = true;
         this.introFinishedCallback();
-        this.isIntroFinished = true;
       }
 
       if (this.timeRemaining > 0) {
-        this.updateCallback(this.timeRemaining);
         this.timeRemaining -= 1;
+        this.updateCallback(this.timeRemaining);
         countdownTimer = setTimeout(
           () => this.countdown(),
           1000);

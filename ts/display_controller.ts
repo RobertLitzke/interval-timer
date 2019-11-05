@@ -1,5 +1,12 @@
 namespace Timer {
 
+
+  export enum Status {
+    Play = "Play",
+    Pause = "Pause",
+    Stop = "Stop",
+  };
+
   export class DisplayController {
     timerEl: HTMLElement;
     totalTimerEl: HTMLElement;
@@ -8,6 +15,7 @@ namespace Timer {
     diagramEl: HTMLElement;
     statusEl: HTMLElement;
     upcomingEl: HTMLElement;
+    controlButtonEl: HTMLElement;
 
     constructor(timerEl: HTMLElement,
         totalTimerEl: HTMLElement,
@@ -15,7 +23,8 @@ namespace Timer {
         taskDisplayEl: HTMLElement,
         diagramEl: HTMLCanvasElement,
         statusEl: HTMLElement,
-        upcomingEl: HTMLElement) {
+        upcomingEl: HTMLElement,
+        controlButtonEl: HTMLElement) {
       this.timerEl = timerEl;
       this.totalTimerEl = totalTimerEl;
       this.taskWrapperEl = taskWrapperEl;
@@ -23,6 +32,7 @@ namespace Timer {
       this.diagramEl = diagramEl;
       this.statusEl = statusEl;
       this.upcomingEl = upcomingEl;
+      this.controlButtonEl = controlButtonEl;
     }
 
     setTask(taskName: string, color: string): void {
@@ -32,6 +42,32 @@ namespace Timer {
 
     setTime(seconds: number): void {
       this.timerEl.innerText = this.formattedTime(seconds);
+    }
+
+    setStatus(status: Status): void {
+      switch (status) {
+        case Status.Play:
+          this.statusEl.innerHTML = "<img src='images/play.svg'>";
+          return;
+        case Status.Pause:
+          this.statusEl.innerHTML = "<img src='images/pause.svg'>";
+          return;
+        case Status.Stop:
+          this.statusEl.innerHTML = "<img src='images/stop.svg'>";
+          return;
+        default:
+          console.log("Unknown status");
+      }
+    }
+
+    flashOverlay() {
+      const overlay = document.getElementById("overlay");
+      overlay.classList.remove("hidden");
+      overlay.classList.add("visible");
+      setTimeout(() => {
+        overlay.classList.remove("visible");
+        overlay.classList.add("hidden");
+      }, 500);
     }
 
     setTotalTime(seconds: number, totalDuration: number): void {
@@ -73,6 +109,18 @@ namespace Timer {
       while (element.firstChild) {
         element.removeChild(element.firstChild)
       }
+    }
+
+    setStart(): void {
+      this.controlButtonEl.innerText = 'START';
+      this.controlButtonEl.classList.remove('is-warning');
+      this.controlButtonEl.classList.add('is-success');
+    }
+
+    setPause(): void {
+      this.controlButtonEl.innerText = 'PAUSE';
+      this.controlButtonEl.classList.remove('is-success');
+      this.controlButtonEl.classList.add('is-warning');
     }
   }
 }

@@ -2,6 +2,7 @@
   "compilerOptions": {
     "target": "ES2017",
     "removeComments": false,
+    "outFile": "../js/main.js",
     "preserveConstEnums": true,
     "sourceRoot": ".",
     "rootDir": ".",

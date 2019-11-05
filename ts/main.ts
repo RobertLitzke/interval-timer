@@ -24,7 +24,8 @@ namespace Timer {
           document.querySelector("#task"),
           document.querySelector('#diagram'),
           document.querySelector('#status'),
-          document.querySelector('#upcoming'));
+          document.querySelector('#upcoming'),
+          document.querySelector("#start-control"));
       this.audioController = new Timer.AudioController(
           document.querySelector('#intro-end-sound'),
           document.querySelector('#interval-end-sound'));
@@ -32,7 +33,8 @@ namespace Timer {
           document.querySelector("#schedule-editor"),
           document.querySelector("#schedule-pretty-editor"),
           document.querySelector("#schedule-text-editor"),
-          document.querySelector("#set-schedule-control"));
+          document.querySelector("#set-schedule-control"),
+          () => this.reset());
       this.addControlHandlers();
       this.currentSchedule = this.scheduleEditor.getSchedule(
           this.displayController, this.audioController);
@@ -53,14 +55,8 @@ namespace Timer {
 
       if (this.currentSchedule.isRunning()) {
         this.currentSchedule.pause();
-        this.controlButtonEl.innerText = 'START';
-        this.controlButtonEl.classList.remove('is-warning');
-        this.controlButtonEl.classList.add('is-success');
       } else {
         this.currentSchedule.start();
-        this.controlButtonEl.innerText = 'PAUSE';
-        this.controlButtonEl.classList.remove('is-success');
-        this.controlButtonEl.classList.add('is-warning');
       }
     }
 

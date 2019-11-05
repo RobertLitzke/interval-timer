@@ -9,7 +9,6 @@
     <style>
       #task, #timer {
           font-weight: 300;
-          text-align: center;
       }
 
       #task {
@@ -24,6 +23,18 @@
         width: 100px;
       }
 
+      .hidden {
+        opacity: 0;
+        visibility: hidden;
+        transition: visibility .25s, opacity .25s ease-in-out;
+      }
+
+      .visible {
+        opacity: .8;
+        visibility: visible;
+        transition: visibility 0s, opacity .15s ease-in-out;
+      }
+
       #warmup {
         width: 100px;
         margin: 0 12px;
@@ -32,6 +43,33 @@
       #schedule-text-editor {
         width: 100%;
         height: 200px;
+      }
+
+      #timer-wrapper {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+      }
+
+      #status {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        padding: 25px 25px;
+      }
+
+      #status img {
+        height: 80px;
+      }
+
+      #overlay {
+        background: red;
+        height: 100%;
+        left: 0;
+        position: fixed;
+        right: 0;
+        top: 0;
+        width: 100%;
       }
     </style>
   </head>
@@ -49,7 +87,9 @@
             <div class="tile is-parent">
               <article class="tile is-child notification">
                 <p class="subtitle">Time Remaining for Current Task</p>
-                <div id="timer">0:00</div>
+                <div id="timer-wrapper">
+                  <span id="status"><img src="images/pause.svg"></span><div id="timer">0:00</div>
+                </div>
               </article>
             </div>
             <div class="tile">
@@ -63,7 +103,6 @@
               <div class="tile is-parent">
                 <article class="tile is-child notification is-success">
                   <p class="subtitle">Total Time</p>
-                  <div id="status"></div>
                   <span id="total-timer" style="font-size:2em">0:00</span>
                 </article>
               </div>
@@ -121,5 +160,6 @@
     </div>
     <audio id="intro-end-sound" src="sounds/intro_bell.wav" preload="auto"></audio>
     <audio id="interval-end-sound" src="sounds/bell.wav" preload="auto"></audio>
+    <div id="overlay" class="hidden"></div>
   </body>
 </html>

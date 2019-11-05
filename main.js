@@ -19,15 +19,8 @@ var Timer;
 })(Timer || (Timer = {}));
 var Timer;
 (function (Timer) {
-    let Status;
-    (function (Status) {
-        Status["Play"] = "Play";
-        Status["Pause"] = "Pause";
-        Status["Stop"] = "Stop";
-    })(Status = Timer.Status || (Timer.Status = {}));
-    ;
     class DisplayController {
-        constructor(timerEl, totalTimerEl, taskWrapperEl, taskDisplayEl, diagramEl, statusEl, upcomingEl, controlButtonEl) {
+        constructor(timerEl, totalTimerEl, taskWrapperEl, taskDisplayEl, diagramEl, statusEl, upcomingEl) {
             this.timerEl = timerEl;
             this.totalTimerEl = totalTimerEl;
             this.taskWrapperEl = taskWrapperEl;
@@ -35,7 +28,6 @@ var Timer;
             this.diagramEl = diagramEl;
             this.statusEl = statusEl;
             this.upcomingEl = upcomingEl;
-            this.controlButtonEl = controlButtonEl;
         }
         setTask(taskName, color) {
             this.taskDisplayEl.innerText = taskName;
@@ -43,30 +35,6 @@ var Timer;
         }
         setTime(seconds) {
             this.timerEl.innerText = this.formattedTime(seconds);
-        }
-        setStatus(status) {
-            switch (status) {
-                case Status.Play:
-                    this.statusEl.innerHTML = "<img src='images/play.svg'>";
-                    return;
-                case Status.Pause:
-                    this.statusEl.innerHTML = "<img src='images/pause.svg'>";
-                    return;
-                case Status.Stop:
-                    this.statusEl.innerHTML = "<img src='images/stop.svg'>";
-                    return;
-                default:
-                    console.log("Unknown status");
-            }
-        }
-        flashOverlay() {
-            const overlay = document.getElementById("overlay");
-            overlay.classList.remove("hidden");
-            overlay.classList.add("visible");
-            setTimeout(() => {
-                overlay.classList.remove("visible");
-                overlay.classList.add("hidden");
-            }, 500);
         }
         setTotalTime(seconds, totalDuration) {
             this.totalTimerEl.innerText =
@@ -101,16 +69,6 @@ var Timer;
             while (element.firstChild) {
                 element.removeChild(element.firstChild);
             }
-        }
-        setStart() {
-            this.controlButtonEl.innerText = 'START';
-            this.controlButtonEl.classList.remove('is-warning');
-            this.controlButtonEl.classList.add('is-success');
-        }
-        setPause() {
-            this.controlButtonEl.innerText = 'PAUSE';
-            this.controlButtonEl.classList.remove('is-success');
-            this.controlButtonEl.classList.add('is-warning');
         }
     }
     Timer.DisplayController = DisplayController;
@@ -486,9 +444,10 @@ var Timer;
     class Main {
         constructor() {
             this.currentSchedule = null;
-            this.displayController = new Timer.DisplayController(document.querySelector("#timer"), document.querySelector("#total-timer"), document.querySelector("#task-wrapper"), document.querySelector("#task"), document.querySelector('#diagram'), document.querySelector('#status'), document.querySelector('#upcoming'), document.querySelector("#start-control"));
+            this.displayController = new Timer.DisplayController(document.querySelector("#timer"), document.querySelector("#total-timer"), document.querySelector("#task-wrapper"), document.querySelector("#task"), document.querySelector('#diagram'), document.querySelector('#status'), document.querySelector('#upcoming'));
             this.audioController = new Timer.AudioController(document.querySelector('#intro-end-sound'), document.querySelector('#interval-end-sound'));
-            this.scheduleEditor = new Timer.ScheduleEditor(document.querySelector("#schedule-editor"), document.querySelector("#schedule-pretty-editor"), document.querySelector("#schedule-text-editor"), document.querySelector("#set-schedule-control"), () => this.reset());
+            this.scheduleEditor = new Timer.ScheduleEditor(document.querySelector("#schedule-editor"), document.querySelector("#schedule-pretty-editor"), document.querySelector("#schedule-text-editor"), document.querySelector("#set-schedule-control"), this.reset);
+            console.log("test");
             this.addControlHandlers();
             this.currentSchedule = this.scheduleEditor.getSchedule(this.displayController, this.audioController);
             this.currentSchedule.prepare();
@@ -497,7 +456,7 @@ var Timer;
             this.controlButtonEl = document.querySelector("#start-control");
             this.controlButtonEl.onclick = () => this.toggleCountdown();
             document.querySelector("#reset-control").onclick =
-                () => this.reset();
+                this.reset;
         }
         toggleCountdown() {
             if (!this.currentSchedule || this.currentSchedule.isFinished()) {
@@ -505,9 +464,15 @@ var Timer;
             }
             if (this.currentSchedule.isRunning()) {
                 this.currentSchedule.pause();
+                this.controlButtonEl.innerText = 'START';
+                this.controlButtonEl.classList.remove('is-warning');
+                this.controlButtonEl.classList.add('is-success');
             }
             else {
                 this.currentSchedule.start();
+                this.controlButtonEl.innerText = 'PAUSE';
+                this.controlButtonEl.classList.remove('is-success');
+                this.controlButtonEl.classList.add('is-warning');
             }
         }
         reset() {
@@ -567,18 +532,15 @@ var Timer;
         }
         onTimerUpdate(time) {
             this.display.setTime(time);
-            this.setTotalTime();
+            this.display.setTotalTime(this.accumulatedSeconds, this.totalDuration);
             this.accumulatedSeconds++;
         }
         onIntroEnd() {
             this.audio.playIntroEnd();
-            this.setDisplayTask(this.getCurrentInterval());
-            this.display.flashOverlay();
         }
         onIntervalEnd() {
             this.currentIntervalIndex += 1;
             this.audio.playIntervalEnd();
-            this.display.flashOverlay();
             if (!this.isFinished()) {
                 this.setDisplayTask(this.getCurrentInterval());
                 this.updateUpcoming();
@@ -589,12 +551,8 @@ var Timer;
             }
             countdownTimer = null;
         }
-        setTotalTime() {
-            this.display.setTotalTime(this.accumulatedSeconds, this.totalDuration);
-        }
         setDisplayTask(interval) {
-            const suffix = interval.isIntroActive() ? " (Warmup)" : "";
-            this.display.setTask(interval.task + suffix, interval.color);
+            this.display.setTask(interval.task, interval.color);
             if (interval.feature) {
                 this.display.renderFeature(interval.feature);
             }
@@ -604,8 +562,6 @@ var Timer;
         }
         setDisplayFinished() {
             this.display.setTask('DONE!', '');
-            this.display.setStatus(Timer.Status.Stop);
-            this.display.setStart();
         }
         updateUpcoming() {
             if (this.isFinished()) {
@@ -624,14 +580,11 @@ var Timer;
             if (!interval) {
                 return;
             }
-            this.display.setPause();
-            this.display.setStatus(Timer.Status.Play);
             interval.start();
         }
         prepare() {
-            this.display.setTime(this.getCurrentInterval().getCurrentTimeRemaining());
+            this.display.setTime(this.getCurrentInterval().duration);
             this.setDisplayTask(this.getCurrentInterval());
-            this.setTotalTime();
             this.updateUpcoming();
         }
         pause() {
@@ -639,8 +592,6 @@ var Timer;
             if (!interval) {
                 return;
             }
-            this.display.setStart();
-            this.display.setStatus(Timer.Status.Pause);
             interval.pause();
         }
     }
@@ -660,17 +611,8 @@ var Timer;
         setCallbacks(introFinishedCallback, updateCallback, finishedCallback) {
             this.timer.setCallbacks(introFinishedCallback, updateCallback, finishedCallback);
         }
-        isIntroActive() {
-            return !this.timer.isIntroFinished;
-        }
         getTotalDuration() {
             return this.duration + this.introDuration;
-        }
-        getCurrentTimeRemaining() {
-            if (this.isIntroActive()) {
-                return this.timer.introTimeRemaining;
-            }
-            return this.timer.timeRemaining;
         }
         start() {
             this.timer.countdown();
@@ -698,18 +640,18 @@ var Timer;
                 return;
             }
             if (this.introTimeRemaining > 0) {
-                this.introTimeRemaining -= 1;
                 this.updateCallback(this.introTimeRemaining);
+                this.introTimeRemaining -= 1;
                 countdownTimer = setTimeout(() => this.countdown(), 1000);
                 return;
             }
             else if (!this.isIntroFinished) {
-                this.isIntroFinished = true;
                 this.introFinishedCallback();
+                this.isIntroFinished = true;
             }
             if (this.timeRemaining > 0) {
-                this.timeRemaining -= 1;
                 this.updateCallback(this.timeRemaining);
+                this.timeRemaining -= 1;
                 countdownTimer = setTimeout(() => this.countdown(), 1000);
             }
             else {

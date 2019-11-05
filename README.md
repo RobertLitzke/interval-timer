@@ -10,22 +10,28 @@ or chords,  tabs, etc.
 
 ## TODOs
 
+### General features
+* Support UI for updating schedule without needing to modify CSVs (+CSV export).
+* More subtle custom color scheme, maybe using Bulma.
+* Improve documentation around the CSV schedule, hinting for supported options by feature class.
+* Basic support for some non-Guitar feature class, to ensure multiple feature classes work.
+* Allow sub-intervals.
+
+### Infrastructure
+* More useful README :)
+* Decompose some classes to more basic components.
+* Add tests.
+* Support cellphone form factors.
+* Web workers.
+* Support multiple languages.
+* ARIA support.
+
+### Guitar-related
 * Add more scales.
 * Add more chords. Support multiple chord representations.
-* Support UI for updating schedule without needing to modify CSVs (+CSV export).
 * Support visual representation of barres for chords.
-* Add tests.
-* More subtle custom color scheme, maybe using Bulma.
-* More useful README :)
-* Find good TAB representation and display it.
-* Improve documentation around the CSV schedule, hinting for supported chords/scales.
+* Find good TAB format and display tabs.
 * Allow fretboard rotation and support for left-handed mode.
-* Support multiple hours of schedule.
 * Prettier rendering of notes on fretboard.
 * Show notes in scales on fretboard. Show scale degrees and spellings.
-* Good mobile support.
 * Metronome?
-* Basic support for some non-Guitar feature (ensure multiple features work).
-* Make stop time precise, better display of intro times.
-* Allow sub-intervals.
-* Less rigid parsing of csv.

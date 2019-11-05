@@ -16,11 +16,13 @@ namespace Timer {
     constructor(el: HTMLElement,
         prettyEl: HTMLElement,
         textEl: HTMLInputElement,
-        updateButtonEl: HTMLElement) {
+        updateButtonEl: HTMLElement,
+        updateAction: () => any) {
       this.el = el;
       this.prettyEl = el;
       this.textEl = textEl;
       this.updateButtonEl = updateButtonEl;
+      this.updateButtonEl.onclick = updateAction;
     }
 
     // Given an input in the form "seconds", "minutes:seconds" or
