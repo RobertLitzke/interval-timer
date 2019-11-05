@@ -9,7 +9,6 @@ or chords,  tabs, etc.
 [Try it here](https://robertlitzke.github.io/interval-timer/).
 
 ## TODOs
-
 ### General features
 * Support UI for updating schedule without needing to modify CSVs (+CSV export).
 * More subtle custom color scheme, maybe using Bulma.
@@ -18,7 +17,7 @@ or chords,  tabs, etc.
 * Allow sub-intervals.
 
 ### Infrastructure
-* More useful README :)
+* README with instructions :)
 * Decompose some classes to more basic components.
 * Add tests.
 * Support cellphone form factors.
