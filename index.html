@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Guitar Timer</title>
-    <script src="js/main.js"></script>
+    <script src="js/interval_timer.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.7.5/css/bulma.min.css">
     <style>
       #task, #timer {
@@ -73,7 +73,7 @@
       }
     </style>
   </head>
-  <body onload="init()">
+  <body onload="IntervalTimer.init()">
     <div class="container">
       <div class="tile is-ancestor is-vertical">
         <div class="tile">
@@ -135,12 +135,7 @@
                 <div id="schedule-pretty-editor">
                 </div>
                 <textarea id="schedule-text-editor">
-2:00 Exercise 1
-2:00 Exercise 2
-2:00 Exercise 3
-2:00 Exercise 4
-2:00 Exercise 5
-4:00 Minor Pentatonic Scale,Scale, Pentatonic Minor, A
+4:00 Minor Pentatonic Scale,Scale, Natural Minor, E, E-G-B|D-F#-A|C-E-G
 4:00 Minor Scale, Scale, Natural Minor, A
 10:00 Chord Switching, Chord, A_MAJOR, Chord, D_MAJOR
 2:00 Lick 1
@@ -150,6 +145,11 @@
 2:00 Lick 5
 7:00 Solo to backing track
 10:00 Practice Song
+2:00 Exercise 1
+2:00 Exercise 2
+2:00 Exercise 3
+2:00 Exercise 4
+2:00 Exercise 5
                 </textarea>
                 <button id="set-schedule-control" class="control button is-success">UPDATE</button>
               </div>

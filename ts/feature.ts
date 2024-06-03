@@ -1,5 +1,3 @@
-namespace Timer {
-  export interface Feature {
-    render(container: HTMLElement): void;
-  }
+export interface Feature {
+  render(container: HTMLElement): void;
 }

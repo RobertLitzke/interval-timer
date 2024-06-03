@@ -34,3 +34,13 @@ or chords,  tabs, etc.
 * Prettier rendering of notes on fretboard.
 * Show notes in scales on fretboard. Show scale degrees and spellings.
 * Metronome?
+
+## Buildiing
+
+Interval Timer currently uses CommonJS, and will output to a `./js` directory. It relies [browserify]() and `tsify`. Interval Timer can be compiled with this command:
+
+```
+browserify main.ts -p tsify --standalone IntervalTimer > ../js/interval_timer.js
+```
+
+Which will run typescript compile according to tsconfig.json, using an entry point of `main.ts`, and compile a module named IntervalTimer to the `js/interval_timer.js` file. `IntervalTimer#init` is referenced from `index.html`'s body onload.

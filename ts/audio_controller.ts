@@ -1,25 +1,22 @@
-namespace Timer {
+export class AudioController {
+  introEndSoundEl: HTMLElement;
+  intervalEndSoundEl: HTMLElement;
 
-  export class AudioController {
-    introEndSoundEl: HTMLElement;
-    intervalEndSoundEl: HTMLElement;
+  constructor(introEndSoundEl: HTMLElement,
+  intervalEndSoundEl: HTMLElement) {
+    this.introEndSoundEl = introEndSoundEl;
+    this.intervalEndSoundEl = intervalEndSoundEl;
+  }
 
-    constructor(introEndSoundEl: HTMLElement,
-    intervalEndSoundEl: HTMLElement) {
-      this.introEndSoundEl = introEndSoundEl;
-      this.intervalEndSoundEl = intervalEndSoundEl;
-    }
+  playSound(audioElement: any): void {
+    audioElement.play();
+  }
 
-    playSound(audioElement: any): void {
-      audioElement.play();
-    }
+  playIntroEnd(): void {
+    this.playSound(this.introEndSoundEl);
+  }
 
-    playIntroEnd(): void {
-      this.playSound(this.introEndSoundEl);
-    }
-
-    playIntervalEnd(): void {
-      this.playSound(this.intervalEndSoundEl);
-    }
+  playIntervalEnd(): void {
+    this.playSound(this.intervalEndSoundEl);
   }
 }
