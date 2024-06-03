@@ -1,4 +1,4 @@
-import {GuitarFeature} from "./guitar";
+import {GuitarFeature} from "./guitar/guitar";
 import {AudioController} from "./audio_controller";
 import {DisplayController} from "./display_controller";
 import {Interval, Schedule} from "./schedule";
