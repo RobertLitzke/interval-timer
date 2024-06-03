@@ -573,12 +573,6 @@ const scales = {
 
 },{}],4:[function(require,module,exports){
 "use strict";
-// <reference path="audio_controller.ts" />
-// <reference path="display_controller.ts" />
-// <reference path="feature.ts" />
-// <reference path="guitar.ts" />
-// <reference path="schedule.ts" />
-// <reference path="schedule_editor.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.init = exports.Main = void 0;
 const audio_controller_1 = require("./audio_controller");
@@ -832,10 +826,6 @@ class IntervalTimer {
 
 },{"./display_controller":2}],6:[function(require,module,exports){
 "use strict";
-// <reference path="audio_controller.ts" />
-// <reference path="display_controller.ts" />
-// <reference path="feature.ts" />
-// <reference path="schedule.ts" />
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.ScheduleEditor = void 0;
 const guitar_1 = require("./guitar");

@@ -1,10 +1,3 @@
-// <reference path="audio_controller.ts" />
-// <reference path="display_controller.ts" />
-// <reference path="feature.ts" />
-// <reference path="guitar.ts" />
-// <reference path="schedule.ts" />
-// <reference path="schedule_editor.ts" />
-
 import {AudioController} from "./audio_controller";
 import {DisplayController} from "./display_controller";
 import {ScheduleEditor} from "./schedule_editor";
